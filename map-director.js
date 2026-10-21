@@ -56,11 +56,18 @@
         f.onEnd=()=>{
           if(flight!==f||f.done)return;
           const c=map.getCenter();
-          if(Math.abs(map.getZoom()-zoom)>tolerance||Math.abs(c.lat-target.lat)>1e-7||Math.abs(c.lng-target.lng)>1e-7)return;
-          if(!keepWorldCopy&&trueLongitude!==undefined&&Math.abs(trueLongitude-target.lng)>1e-9){
-            // Same picture on another world copy: normalise so later panning and the pin use the true longitude.
+          if(Math.abs(map.getZoom()-zoom)>tolerance)return;
+          // Leaflet quantises the centre to whole pixels once the person has dragged the map, so "arrived" means
+          // within a pixel and a half at the target zoom, not equal to the last digit.
+          const degPerPixel=360/(256*Math.pow(2,zoom)),lngSlack=1.5*degPerPixel,latSlack=1.5*degPerPixel*Math.max(Math.cos(target.lat*Math.PI/180),.05);
+          if(Math.abs(c.lat-target.lat)>latSlack||Math.abs(c.lng-target.lng)>lngSlack)return;
+          const finalLng=!keepWorldCopy&&trueLongitude!==undefined?trueLongitude:target.lng;
+          if(Math.abs(c.lat-target.lat)>1e-9||Math.abs(c.lng-finalLng)>1e-9){
+            // `reset` matters: at an unchanged zoom Leaflet would otherwise pan by whole pixels and leave the gap.
+            // Close the last sub-pixel gap, and normalise a longitude that was unwrapped for the flight (same picture on
+            // another world copy), so later panning, Recenter and the readout all use the true coordinate.
             f.done=true;map.off('moveend',f.onEnd);if(flight===f)flight=null;
-            map.setView([target.lat,trueLongitude],zoom,{animate:false});resolve('arrived');return;
+            map.setView([target.lat,finalLng],zoom,{animate:false,reset:true});resolve('arrived');return;
           }
           settleFlight(f,'arrived');
         };
@@ -82,7 +89,7 @@
       const plan=classify(location,bounds);
       if(flight)cancel('replaced');
       if(plan.kind==='none'||plan.kind==='polar')return plan;
-      map.setView([location.latitude,location.longitude],plan.zoom,{animate:false});
+      map.setView([location.latitude,location.longitude],plan.zoom,{animate:false,reset:true});
       return plan;
     }
 
@@ -90,6 +97,13 @@
     function widen({animate=true,duration=1.1}={}){
       const c=map.getCenter();if(map.getZoom()<=WIDE_ZOOM+.5)return Promise.resolve('arrived');
       return move({lat:c.lat,lng:c.lng},WIDE_ZOOM,{animate,duration});
+    }
+
+    /** Ends any move in progress and leaves the camera on the wide view if it is closer in than that. Used when
+     *  nothing can be plotted, so a result without a location never ends mid-zoom or stuck on an earlier street view. */
+    function rest(){
+      if(flight)cancel('replaced');
+      if(map.getZoom()>WIDE_ZOOM+.5)map.setView(map.getCenter(),WIDE_ZOOM,{animate:false,reset:true});
     }
 
     function recenter(location,{animate=true}={}){
@@ -104,7 +118,7 @@
     container.addEventListener('keydown',e=>{if(/^(Arrow|\+|-|=|PageUp|PageDown|Home|End)/.test(e.key))interrupt();},true);
 
     return {
-      fly,jump,widen,recenter,cancel,classify:loc=>classify(loc,bounds),
+      fly,jump,widen,rest,recenter,cancel,classify:loc=>classify(loc,bounds),
       get flying(){return !!flight;},
       get flightId(){return flight?flight.id:0;},
       dispose(){cancel('cancelled');}

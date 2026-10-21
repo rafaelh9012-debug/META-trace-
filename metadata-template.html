@@ -1,43 +1,131 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-motion="full">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Read embedded image metadata and GPS coordinates locally.">
+<meta name="description" content="META trace reads the metadata and embedded GPS of an image on your device.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Crimson / Image Metadata</title>
+<title>META trace</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6.5' fill='none' stroke='%23EA668D' stroke-width='1.6'/%3E%3Cpath d='M12 2v5M12 17v5M2 12h5M17 12h5' stroke='%23EA668D' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='1.9' fill='%23EA668D'/%3E%3C/svg%3E">
 <style>/*__LEAFLET_CSS__*/</style><style>/*__METADATA_CSS__*/</style>
 </head>
-<body>
-<header class="topbar"><div class="brand"><span class="brand-symbol">⌖</span>CRIMSON <span class="slash">/</span><b>IMAGE METADATA</b></div><div class="privacy"><span></span>LOCAL PROCESSING</div><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></header>
-<main class="workspace">
-  <aside class="sidebar">
-    <section class="upload-section">
-      <span class="eyebrow">READ WHAT THE FILE CONTAINS</span><h1>A location, if it’s there.</h1><p class="lead">Open an image to inspect its metadata and map its embedded GPS coordinates.</p>
-      <label id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose an image or drop one here"><input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.webp,.heic,.heif,.avif"><span class="upload-icon">↥</span><b>Choose an image</b><span>or drag and drop it here</span></label>
-      <p class="supported">JPEG · PNG · TIFF · WebP · HEIC/AVIF* <span>64 MiB max</span></p>
-      <p class="format-note">*HEIC/AVIF compatibility depends on the metadata variant.</p>
-      <div id="fileCard" class="file-card" hidden><div class="preview-wrap"><img id="preview" alt="Selected image preview"><span id="previewFallback" hidden>IMAGE</span></div><div class="file-info"><b id="fileName"></b><span id="fileDetails"></span></div><button id="clear" class="icon-button" aria-label="Clear image" title="Clear">×</button></div>
+<body data-presentation="idle" data-analysis="idle">
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4m0 0L8 8m4-4 4 4M4.5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound-on" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12.5 19V5L7.5 9.5H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound-off" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12.5 19V5L7.5 9.5H4zM16.5 9.5l4.5 5M21 9.5l-4.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5.5l9 6.5-9 6.5zM18.5 5v14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9h10v10H9zM5 15V5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5.5M12 7.8v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-busy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3.2"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12.3l2.8 2.8L16.2 9.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4.5M12 16.9v.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand"><svg class="brand-mark" aria-hidden="true"><use href="#i-mark"/></svg><span class="brand-name">META trace</span><span class="brand-note">Image metadata</span></div>
+  <p class="privacy">Processed on this device</p>
+  <div class="deck" role="group" aria-label="Sound and motion">
+    <button id="soundToggle" class="chip" type="button" aria-pressed="true"><svg aria-hidden="true"><use id="soundIcon" href="#i-sound-on"/></svg><span id="soundLabel">Sound on</span></button>
+    <label class="volume" title="Volume"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" step="1" value="70"></label>
+    <label class="motion"><span>Motion</span><select id="motion"><option value="full">Cinematic</option><option value="fast">Fast</option><option value="reduced">Reduced</option></select></label>
+    <button id="fullscreen" class="icon-button" type="button" aria-label="Toggle fullscreen" title="Fullscreen"><svg aria-hidden="true"><use href="#i-expand"/></svg></button>
+  </div>
+</header>
+
+<main id="main" class="workspace">
+  <div class="col col-stage">
+    <section class="stage" aria-labelledby="stageHeading">
+      <h1 id="stageHeading" class="sr-only">Image inspection</h1>
+      <div id="bay" class="bay" data-phase="idle" data-clean="false" role="group" aria-label="Image bay. Drop an image here or use Choose an image.">
+        <canvas id="scanCanvas" class="scan-canvas" aria-hidden="true"></canvas>
+        <div id="frame" class="frame">
+          <img id="preview" alt="Selected image" hidden>
+          <div id="previewFallback" class="preview-fallback" hidden>No preview available for this file</div>
+          <div class="depth" aria-hidden="true"></div>
+          <div class="sweep" aria-hidden="true"><div class="sweep-run"></div></div>
+          <i class="ruler ruler-x" aria-hidden="true"></i><i class="ruler ruler-y" aria-hidden="true"></i>
+          <i class="bracket tl" aria-hidden="true"></i><i class="bracket tr" aria-hidden="true"></i><i class="bracket bl" aria-hidden="true"></i><i class="bracket br" aria-hidden="true"></i>
+          <div id="bayEmpty" class="bay-empty">
+            <svg class="bay-icon" aria-hidden="true"><use href="#i-upload"/></svg>
+            <p class="bay-title">Drop an image to inspect it</p>
+            <p class="bay-note">JPEG, PNG, TIFF, WebP, HEIC or AVIF, up to 64 MiB. Nothing is uploaded.</p>
+            <button id="chooseButton" class="btn btn-primary" type="button">Choose an image</button>
+          </div>
+        </div>
+        <div id="ticker" class="ticker" aria-hidden="true"><span class="ticker-key"></span><span class="ticker-value num"></span></div>
+      </div>
+      <div id="fileCard" class="file-card" hidden><b id="fileName" class="file-name"></b><span id="fileDetails" class="file-details"></span></div>
+      <div id="status" class="outcome" data-kind="neutral">
+        <svg class="outcome-icon" aria-hidden="true"><use id="statusIcon" href="#i-info"/></svg>
+        <div><h2 id="statusTitle">Waiting for an image</h2><p id="statusMessage">Your file stays on this device.</p></div>
+      </div>
+      <div class="controls">
+        <div class="controls-primary">
+          <button id="analyze" class="btn btn-primary btn-wide" type="button" disabled>Analyze</button>
+          <button id="skip" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-skip"/></svg><span id="skipLabel">Skip animation</span></button>
+        </div>
+        <div class="controls-secondary">
+          <button id="changeImage" class="btn btn-quiet" type="button" disabled>Change image</button>
+          <button id="replay" class="btn btn-quiet" type="button" disabled><svg aria-hidden="true"><use href="#i-replay"/></svg>Replay</button>
+          <button id="cleanView" class="btn btn-quiet" type="button" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-eye"/></svg>Clean view</button>
+          <button id="clear" class="btn btn-quiet" type="button" disabled>Clear</button>
+        </div>
+      </div>
+      <input id="fileInput" class="sr-only" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.webp,.heic,.heif,.avif" tabindex="-1" aria-label="Choose an image file">
     </section>
-    <section class="result-section">
-      <div id="status" class="status-banner neutral" role="status" aria-live="polite"><span id="statusIcon">○</span><div><h2 id="statusTitle">Waiting for an image</h2><p id="statusMessage">Your file stays on this device.</p></div></div>
-      <div id="coordinates" class="coordinates" hidden><div class="coordinate-row"><span>LATITUDE</span><b id="latitude"></b></div><p id="latitudeDMS"></p><div class="coordinate-row"><span>LONGITUDE</span><b id="longitude"></b></div><p id="longitudeDMS"></p><div class="coordinate-extras"><div><span>ELEVATION</span><b id="altitude">Not recorded</b></div><div><span>POSITION ERROR</span><b id="accuracy">Not recorded</b></div></div></div>
-      <div id="captureSummary" class="capture-summary" hidden></div>
-      <div class="result-actions"><button id="copyCoordinates" disabled>Copy coordinates</button><button id="exportReport" disabled>Export JSON ↗</button></div>
-      <p class="evidence-note">GPS tags can be edited. Embedded coordinates are a record in the file, not proof of the camera’s location.</p>
+    <section class="log-section" aria-labelledby="logHeading">
+      <div class="section-heading"><h2 id="logHeading">Analysis log</h2><span id="elapsed" class="num">—</span></div>
+      <div id="analysisLog" class="analysis-log" role="log" aria-live="off"><div class="log-line log-info"><span class="log-time num">ready</span><span>Ready to read a local image.</span></div></div>
     </section>
-    <section class="metadata-section"><div class="section-heading"><h2>Embedded metadata</h2><span id="tagCount">0 tags</span></div><input id="tagSearch" class="tag-search" type="search" placeholder="Filter tags…" aria-label="Filter metadata tags"><div id="metadataEmpty" class="empty-table">Image metadata will appear here.</div><div class="metadata-table-wrap"><table id="metadataTable" hidden><thead><tr><th>Tag</th><th>Value</th></tr></thead><tbody id="metadataBody"></tbody></table></div><div id="hashPanel" class="hash-panel" hidden><span>FILE SHA-256</span><code id="fileHash"></code></div></section>
-    <section class="log-section"><div class="section-heading"><h2>Analysis log</h2><span id="elapsed">—</span></div><div id="analysisLog" class="analysis-log" role="log" aria-live="off"><div class="log-info">Ready to read a local image.</div></div></section>
-    <footer class="sidebar-footer">Offline metadata inspection · no model or API key needed</footer>
-  </aside>
-  <section class="map-panel" aria-label="GPS map">
-    <div id="map" role="img" aria-label="Offline map for embedded GPS coordinates"></div>
-    <div class="map-heading"><div><span class="eyebrow">COORDINATE VIEW</span><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE / WORLD</span></div>
-    <div id="mapNotice" class="map-notice"><span id="mapNoticeIcon">⌖</span><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
-    <div class="map-controls"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="recenter" aria-label="Recenter GPS marker" disabled>⌖</button></div>
-    <div id="coverageNote" class="coverage-note">World outlines are included. Detailed streets are bundled for the Gainesville / UF area.</div>
-    <div id="mapCoordinate" class="map-coordinate" hidden></div>
+  </div>
+
+  <div class="col col-rail">
+    <section id="result" class="result" aria-labelledby="resultHeading">
+      <h2 id="resultHeading" class="section-title">Location</h2>
+      <p id="resultEmpty" class="empty">Coordinates appear here when the file records a valid GPS position.</p>
+      <div id="coordinates" class="readout" hidden>
+        <div class="axis"><span class="axis-name">Latitude</span><span class="readout-value"><b id="latitude" class="num"></b><span id="latitudeFx" class="num fx" aria-hidden="true"></span></span><p id="latitudeDMS" class="dms num"></p></div>
+        <div class="axis"><span class="axis-name">Longitude</span><span class="readout-value"><b id="longitude" class="num"></b><span id="longitudeFx" class="num fx" aria-hidden="true"></span></span><p id="longitudeDMS" class="dms num"></p></div>
+        <dl class="extras"><div><dt>Elevation</dt><dd id="altitude" class="num">Not recorded</dd></div><div><dt>Position error</dt><dd id="accuracy" class="num">Not recorded</dd></div></dl>
+      </div>
+      <div id="candidates" class="candidates" hidden><h3>Candidates in the file</h3><p class="empty">None of these has been chosen. Compare their sources before relying on any of them.</p><ul id="candidateList"></ul></div>
+      <dl id="captureSummary" class="capture-summary" hidden></dl>
+      <div class="result-actions">
+        <button id="copyCoordinates" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-copy"/></svg>Copy coordinates</button>
+        <button id="exportReport" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-download"/></svg>Export report</button>
+      </div>
+      <p class="evidence-note">GPS tags can be edited. Embedded coordinates are a record in the file, not proof of where the camera was.</p>
+    </section>
+    <section id="details" class="details" aria-labelledby="detailsHeading">
+      <div class="section-heading"><h2 id="detailsHeading">Embedded metadata</h2><span id="tagCount" class="num">0 tags</span></div>
+      <input id="tagSearch" class="tag-search" type="search" placeholder="Filter tags" aria-label="Filter metadata tags">
+      <div id="metadataEmpty" class="empty">Image metadata will appear here.</div>
+      <div class="metadata-table-wrap"><table id="metadataTable" hidden><thead><tr><th scope="col">Tag</th><th scope="col">Value</th></tr></thead><tbody id="metadataBody"></tbody></table></div>
+      <div id="hashPanel" class="hash-panel" hidden><span>SHA-256 of this file</span><code id="fileHash" class="num"></code></div>
+    </section>
+  </div>
+
+  <section class="map-panel" aria-label="Map">
+    <div id="map" role="img" aria-label="Offline map. The pin marks the GPS position embedded in the image."></div>
+    <div class="map-heading"><div><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE MAP</span></div>
+    <div id="mapNotice" class="map-notice"><svg id="mapNoticeSvg" aria-hidden="true"><use id="mapNoticeIcon" href="#i-info"/></svg><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
+    <div class="map-controls"><button id="zoomIn" type="button" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button><button id="zoomOut" type="button" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button><button id="recenter" type="button" aria-label="Recenter on the GPS position" disabled><svg aria-hidden="true"><use href="#i-locate"/></svg></button></div>
+    <div id="coverageNote" class="coverage-note">World outlines are included. Street detail is bundled for the Gainesville and University of Florida area.</div>
+    <div id="mapCoordinate" class="map-coordinate num" hidden></div>
   </section>
 </main>
+
+<div id="announce" class="sr-only" role="status" aria-live="polite"></div>
+<div id="announceAlert" class="sr-only" role="alert"></div>
 <div id="toast" class="toast" role="status"></div>
-<script>/*__LEAFLET_JS__*/</script><script>/*__EXIFR_JS__*/</script><script>/*__MAP_DATA__*/</script><script>/*__METADATA_CORE__*/</script><script>/*__METADATA_PARSER__*/</script><script>/*__WORKER_SOURCE__*/</script><script>/*__MAP_UTILS__*/</script><script>/*__METADATA_APP__*/</script>
+<script>/*__LEAFLET_JS__*/</script><script>/*__EXIFR_JS__*/</script><script>/*__MAP_DATA__*/</script><script>/*__METADATA_CORE__*/</script><script>/*__METADATA_PARSER__*/</script><script>/*__WORKER_SOURCE__*/</script><script>/*__MAP_UTILS__*/</script><script>/*__TRACE_CANVAS_LAYER__*/</script><script>/*__MAP_DIRECTOR__*/</script><script>/*__PRESENTATION_CONTROLLER__*/</script><script>/*__AUDIO_ENGINE__*/</script><script>/*__SCAN_STAGE__*/</script><script>/*__METADATA_APP__*/</script>
 </body></html>
