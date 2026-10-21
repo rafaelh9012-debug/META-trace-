@@ -1,3 +1,5 @@
-Crimson Image Metadata 2.0.0
-Real local EXIF/GPS/XMP extraction, explicit no-location and error states.
+META trace 2.1.0-rc.1 (release candidate)
+Real local EXIF/GPS/XMP extraction with a dark-red analysis presentation: scan, reveal, coordinate settle,
+smooth map descent and pin lock, with original synthesised sounds. Explicit no-location and error states.
 Offline regional streets and world overview. No AI model or map API required.
+Built from Crimson Image Metadata 2.0.0.

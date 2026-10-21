@@ -1,5 +1,5 @@
-Crimson Image Metadata 2.0.0 — sources and licensing
-==================================================
+META trace 2.1.0-rc.1 — sources and licensing
+=============================================
 The application processes selected files locally. All runtime libraries,
 maps and styles are included in the HTML. No API keys or live tiles are used.
 
@@ -45,6 +45,23 @@ Regenerator: map_builder.py. The derived data contains 12,671 public map
 features and 1,657 label candidates, including streets, buildings, paths,
 parking, land cover, water and points of interest. Coverage is limited to
 longitude -82.351 to -82.324, latitude 29.638 to 29.659.
+
+INTERFACE SOUNDS, FONTS AND ICONS
+The interface sounds are generated while the app runs, from oscillators and filtered noise
+(audio-engine.js). No recorded audio, sample, sound library or audio file is included.
+No web fonts are included or requested; the interface uses the fonts already installed
+on the computer (Segoe UI, Bahnschrift, system defaults). The icons and the browser-tab
+mark are hand-drawn inline SVG made for this project. No third-party artwork is used.
+
+DEVELOPMENT TOOLS (not part of the app, not needed to run it)
+Playwright 1.56.1 (Apache-2.0) and its Chromium build, to run the browser tests.
+Pillow, to regenerate the synthetic test images.
+Neither is bundled. package.json names Playwright; there is no lockfile because the
+package registry could not be reached where the work was done. Run npm install to create one.
+
+VERIFICATION IMAGES
+docs/verification contains screenshots taken by the browser tests of synthetic test
+images. The street frames show map data (c) OpenStreetMap contributors, ODbL, as above.
 
 TEST IMAGES AND RESULTS
 The tiny color images in tests/fixtures are synthetic, created by
