@@ -1,0 +1,35 @@
+Map sources and documentation
+=============================
+This version uses no map provider APIs or live tiles. All map data, labels,
+styles, rendering code and UI assets are included locally in the download.
+
+Bundled street/building geometry: copyright OpenStreetMap contributors,
+available under the Open Database License (ODbL).
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+Public map extracts fetched for this demo, 2026-10-16, included as part-0.osm
+through part-3.osm in the data directory, in the following order:
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.638,-82.3375,29.6485
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.638,-82.324,29.6485
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.6485,-82.3375,29.659
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.6485,-82.324,29.659
+Derived geometry is included in data/map-data.json and inline in the HTML,
+including building/courtyard rings, road/path lines, parking, land cover,
+water, trees, street furniture, bus stops and public points of interest.
+The label selection is generated from named features in these extracts.
+The geometry and label datasets remain available under the above license.
+
+Public named property reference (not identification of a photo or resident):
+https://www.courtyardsgainesville.com/location/
+https://www.courtyardsgainesville.com/contact/
+
+Leaflet 1.9.4: BSD-2-Clause, license in LEAFLET_LICENSE.txt.
+https://leafletjs.com/
+https://github.com/Leaflet/Leaflet/releases/tag/v1.9.4
+https://unpkg.com/leaflet@1.9.4/dist/leaflet.js
+https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
+
+Coordinates/elevation: supplied by the user; not geocoded or measured.
+Model initialization, EXIF operations, checksums, tool states and contact
+analysis in the terminal are fictional display effects. No model or security
+tool is bundled, downloaded or executed by the program.

@@ -1,0 +1,3 @@
+Crimson Map Console
+Three natural opening commands, then automatic Qwen initialization.
+Map geometry: 12,671 features. Labels: 1,657 candidates.

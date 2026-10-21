@@ -1,0 +1,25 @@
+{
+  "bounds": [
+    -82.351,
+    29.638,
+    -82.324,
+    29.659
+  ],
+  "features": 12671,
+  "labels": 1657,
+  "counts": {
+    "building": 2323,
+    "green": 338,
+    "paved": 114,
+    "parking": 407,
+    "road": 6284,
+    "water": 39,
+    "barrier": 45,
+    "furniture": 1763,
+    "bus": 123,
+    "poi": 197,
+    "tree": 1038
+  },
+  "source": "part-0.osm through part-3.osm",
+  "dataDate": "2026-10-16"
+}
