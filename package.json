@@ -1,0 +1,19 @@
+{
+  "name": "meta-trace",
+  "version": "2.1.0-rc.1",
+  "private": true,
+  "description": "Local image-metadata instrument. The app itself has no runtime dependencies; Playwright is needed only to run the browser tests.",
+  "scripts": {
+    "build": "python build_metadata.py",
+    "fixtures": "python tests/generate_fixtures.py",
+    "test": "node tests/run.cjs",
+    "test:unit": "node tests/run.cjs unit",
+    "test:browser": "node tests/run.cjs browser"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
