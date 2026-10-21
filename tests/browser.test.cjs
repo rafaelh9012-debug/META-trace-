@@ -612,3 +612,13 @@ scenario('the map heading says what is happening at each step', {motion: 'full'}
   await page.click('#clear');
   assert.equal(await B.text(page, 'mapSubtitle'), 'Select an image to locate its GPS tags.');
 });
+
+scenario('the fullscreen button either enters fullscreen or says what to do instead, and the page keeps working', {motion: 'reduced'}, async ({page}) => {
+  await page.click('#fullscreen');
+  await B.sleep(400);
+  const entered = await page.evaluate(() => !!document.fullscreenElement);
+  if (!entered) assert.match(await B.text(page, 'toast'), /fullscreen/i, 'refused fullscreen is explained');
+  else {await page.click('#fullscreen'); await B.sleep(300); assert.equal(await page.evaluate(() => !!document.fullscreenElement), false, 'a second press leaves fullscreen');}
+  await B.analyze(page, 'sample-street.jpg');
+  assert.equal(await title(page), 'GPS coordinates found');
+});
