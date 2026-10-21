@@ -52,6 +52,30 @@ test('classify: regional, overview, polar and unusable coordinates', () => {
   assert.equal(c(29.64885278, -82.33788889, null).kind, 'overview', 'with no bundled street data nothing is regional');
 });
 
+test('a flight that ends a fraction of a pixel off (Leaflet quantises the centre after a manual pan) still arrives, exactly', async () => {
+  const map = fakeMap({lat: 29.6484, lng: -82.3391, zoom: 18}), d = make(map);
+  const loc = {latitude: 29.64885278, longitude: -82.33788889};
+  const done = d.recenter(loc, {animate: true});
+  assert.equal(d.flying, true);
+  map.pending = null; map.center = {lat: loc.latitude - 4.3e-7, lng: loc.longitude + 1.1e-6}; map.zoom = 18; map.fire();
+  assert.equal(await done, 'arrived');
+  assert.equal(d.flying, false, 'the flight is not left hanging');
+  assert.deepEqual([map.center.lat, map.center.lng, map.zoom], [loc.latitude, loc.longitude, 18], 'the last sub-pixel gap is closed');
+  assert.deepEqual(map.calls.at(-1).options, {animate: false, reset: true}, 'an exact reset, not a whole-pixel pan');
+  assert.equal(map.listenerCount(), 0);
+});
+
+test('several pixels short of the target is not arrival', async () => {
+  const map = fakeMap({lat: 29.6484, lng: -82.3391, zoom: 18}), d = make(map);
+  const loc = {latitude: 29.64885278, longitude: -82.33788889};
+  const done = d.recenter(loc, {animate: true});
+  map.pending = null; map.center = {lat: loc.latitude, lng: loc.longitude + 5 * 360 / (256 * 2 ** 18)}; map.zoom = 18; map.fire();   // five pixels east
+  assert.equal(await pending(done), true);
+  assert.equal(d.flying, true);
+  d.cancel();
+  assert.equal(await done, 'cancelled');
+});
+
 test('unwrapLongitude picks the world copy nearest the camera', () => {
   assert.equal(Director.unwrapLongitude(-179.9999, 179.9), 180.0001);
   assert.equal(Director.unwrapLongitude(179.9999, -179.9), -180.0001);
@@ -129,7 +153,7 @@ test('longitude is unwrapped for the path and normalised to the true value on ar
   map.finish();
   assert.equal(await done, 'arrived');
   const last = map.calls.at(-1);
-  assert.deepEqual([last.type, last.lat, last.lng, last.zoom, last.options], ['setView', -17.75, -179.9999, 5, {animate: false}]);
+  assert.deepEqual([last.type, last.lat, last.lng, last.zoom, last.options], ['setView', -17.75, -179.9999, 5, {animate: false, reset: true}]);
   assert.equal(map.getCenter().lng, -179.9999, 'the camera ends on the true longitude');
   // And back the other way.
   const back = d.fly({latitude: -17.75, longitude: 179.9999});
@@ -162,7 +186,7 @@ test('jump places the final view immediately and ends any flight in progress', a
   assert.deepEqual(plan, {kind: 'regional', zoom: 18});
   assert.equal(await done, 'replaced');
   const last = map.calls.at(-1);
-  assert.deepEqual([last.type, last.lat, last.lng, last.zoom, last.options], ['setView', 29.64885278, -82.33788889, 18, {animate: false}]);
+  assert.deepEqual([last.type, last.lat, last.lng, last.zoom, last.options], ['setView', 29.64885278, -82.33788889, 18, {animate: false, reset: true}]);
   assert.equal(d.flying, false);
 });
 
@@ -184,6 +208,23 @@ test('widen pulls back only when the camera is close, and recenter takes the sho
   const r = d.recenter({latitude: 29.64885278, longitude: -82.33788889});
   assert.equal(map.calls.at(-1).options.duration, 0.9);
   map.finish();assert.equal(await r, 'arrived');
+});
+
+test('rest ends a move in progress and leaves a close camera on the wide view; a wide camera is left alone', async () => {
+  const map = fakeMap({lat: 29.6488, lng: -82.3378, zoom: 18}), d = make(map);
+  const widening = d.widen({animate: true, duration: 1.1});
+  map.zoom = 15.9;                                   // part-way through the zoom-out
+  d.rest();
+  assert.equal(await widening, 'replaced');
+  assert.equal(d.flying, false);
+  assert.deepEqual([map.center.lat, map.center.lng, map.zoom], [29.6488, -82.3378, 3]);
+  assert.deepEqual(map.calls.at(-1).options, {animate: false, reset: true});
+  const before = map.calls.length;
+  d.rest();                                          // already wide: nothing to do
+  assert.equal(map.calls.length, before);
+  const wide = fakeMap({lat: 20, lng: 0, zoom: 2.2}), w = make(wide);
+  w.rest();
+  assert.deepEqual([wide.zoom, wide.calls.length], [2.2, 0], 'the initial world view is not touched');
 });
 
 test('dispose cancels the flight in progress', async () => {

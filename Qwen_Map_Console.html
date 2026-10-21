@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-motion="full">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Read embedded image metadata and GPS coordinates locally.">
+<meta name="description" content="META trace reads the metadata and embedded GPS of an image on your device.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Crimson / Image Metadata</title>
+<title>META trace</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6.5' fill='none' stroke='%23EA668D' stroke-width='1.6'/%3E%3Cpath d='M12 2v5M12 17v5M2 12h5M17 12h5' stroke='%23EA668D' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='1.9' fill='%23EA668D'/%3E%3C/svg%3E">
 <style>/* required styles */
 
 .leaflet-pane,
@@ -666,40 +667,423 @@ svg.leaflet-image-layer.leaflet-interactive path {
 		print-color-adjust: exact;
 		}
 	}
-</style><style>:root{color-scheme:dark;--bg:#0c080c;--panel:#140d13;--border:#42232f;--text:#ebdfe5;--muted:#a38794;--accent:#ff5477;--success:#eeb4c4;--warning:#edb187;--danger:#ff4e70;font-family:Segoe UI,Arial,sans-serif}*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text)}button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.38}button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button{color:var(--text)}[hidden]{display:none!important}.topbar{height:64px;background:#110a10;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 25px;gap:20px}.brand{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:2px}.brand-symbol{color:var(--accent);font-size:28px}.brand b{font-size:10px;font-weight:400;color:#bb99a8;letter-spacing:1.5px}.slash{color:#6d3b4e}.privacy{margin-left:auto;color:#a8a09e;font:9px Consolas,monospace;letter-spacing:1px;display:flex;align-items:center;gap:9px}.privacy>span{width:5px;height:5px;border-radius:50%;background:#f58daa;box-shadow:0 0 9px #ed789e60}.icon-button{background:transparent;border:1px solid #55303f;border-radius:5px;width:30px;height:30px;color:#d0a0b3;font-size:20px}.workspace{display:grid;grid-template-columns:440px minmax(0,1fr);height:calc(100dvh - 64px)}.sidebar{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#623446 transparent;background:linear-gradient(125deg,#1a0e17,#100b10);border-right:1px solid var(--border)}.upload-section,.result-section,.metadata-section,.log-section{padding:24px;border-bottom:1px solid #33202b}.eyebrow{color:#d78da4;font:8px Consolas,monospace;letter-spacing:1.8px}h1{font-size:27px;font-weight:500;letter-spacing:-1px;margin:12px 0 10px}.lead{font-size:12px;color:#a88b98;line-height:1.75;max-width:350px;margin-bottom:20px}.drop-zone{cursor:pointer;display:flex;position:relative;align-items:center;justify-content:center;flex-direction:column;gap:7px;border:1px dashed #93435f;border-radius:7px;background:#35122255;min-height:127px;transition:background .2s,border-color .2s}.drop-zone:hover,.drop-zone.dragging{background:#54203966;border-color:#ef7098}.drop-zone input{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}.upload-icon{font-size:25px;color:#f57799}.drop-zone b{font-size:12px;font-weight:500}.drop-zone>span:last-child{font-size:10px;color:#aa8294}.supported{display:flex;justify-content:space-between;gap:8px;font-size:8px;color:#9a7587;margin:11px 0 5px}.supported>span{white-space:nowrap}.format-note{font-size:8px;color:#6e5965;margin:0}.file-card{display:flex;align-items:center;gap:12px;background:#0c080c;border:1px solid #4a2736;padding:10px;margin-top:18px;border-radius:6px}.preview-wrap{width:49px;height:49px;border-radius:4px;background:#29121f;display:grid;place-items:center;flex-shrink:0;overflow:hidden}.preview-wrap img{width:49px;height:49px;object-fit:cover}.preview-wrap>span{font:8px Consolas,monospace;color:#b97d95}.file-info{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}.file-info b{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-info>span{font-size:9px;color:#957487}.status-banner{display:flex;gap:12px;padding:15px 13px;border:1px solid #56303e;background:#25121b;border-radius:6px}.status-banner>span{font-size:20px;color:#d69bb0}.status-banner h2{font-size:13px;font-weight:500;margin:1px 0 7px}.status-banner p{font-size:10px;line-height:1.7;color:#b28fa0;margin:0}.status-banner.success{border-color:#a94b6b;background:#351322}.status-banner.warning{border-color:#775034;background:#2c1914}.status-banner.warning>span{color:#e0ad80}.status-banner.warning p{color:#bc9c89}.status-banner.error{border-color:#aa2e4f;background:#360e1b}.status-banner.busy>span{animation:breathe 1.2s infinite}.coordinates{margin-top:20px;background:#110a10;border:1px solid #512839;border-radius:6px;padding:16px}.coordinate-row{display:flex;justify-content:space-between;align-items:center}.coordinate-row>span{font:8px Consolas,monospace;letter-spacing:1.4px;color:#a47286}.coordinate-row>b{font:19px Consolas,monospace;letter-spacing:-.4px;color:#f0c1d2}.coordinates>p{font:10px Consolas,monospace;text-align:right;color:#9d7286;margin:5px 0 18px}.coordinate-extras{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #41212f;padding-top:14px;gap:15px}.coordinate-extras>div{display:flex;flex-direction:column;gap:7px}.coordinate-extras span{font:7px Consolas,monospace;letter-spacing:1px;color:#a47286}.coordinate-extras b{font:10px Consolas,monospace;font-weight:400;color:#d5acbe}.capture-summary{margin-top:15px;display:grid;gap:7px}.capture-summary>div{font-size:10px;display:flex;gap:15px;justify-content:space-between;line-height:1.6}.capture-summary span{color:#936c80;white-space:nowrap}.capture-summary b{font-weight:400;color:#d4b2c2;text-align:right;word-break:break-word}.result-actions{display:flex;gap:8px;margin-top:15px}.result-actions button{flex:1;font-size:10px;border:1px solid #6a3348;background:#30111e;color:#e9afc4;border-radius:5px;padding:11px 8px}.result-actions button:not(:disabled):hover{background:#4b1c31}.evidence-note{color:#806775;font-size:9px;line-height:1.7;margin:14px 1px 0}.section-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.section-heading h2{font-size:12px;font-weight:500;margin:0}.section-heading>span{font:8px Consolas,monospace;color:#97677d}.tag-search{width:100%;background:#0c080c;color:#dcb8c9;border:1px solid #482534;border-radius:5px;font-size:10px;padding:10px;margin-bottom:12px}.tag-search::placeholder{color:#705363}.empty-table{padding:18px 0;color:#7e5e71;font-size:10px;line-height:1.7}.metadata-table-wrap{max-height:310px;overflow:auto;scrollbar-width:thin;scrollbar-color:#583144 transparent}table{width:100%;border-collapse:collapse;table-layout:fixed}th{text-align:left;font:8px Consolas,monospace;font-weight:400;color:#b27b94;padding:8px;border-bottom:1px solid #4d2737}th:first-child{width:47%}td{font:9px/1.7 Consolas,monospace;vertical-align:top;word-break:break-word;padding:8px;border-bottom:1px solid #2c1923}td:first-child{color:#a16c85}td:last-child{color:#d6afc1}.hash-panel{margin-top:17px;display:flex;flex-direction:column;gap:8px}.hash-panel>span{font:7px Consolas,monospace;letter-spacing:1px;color:#7e5c70}.hash-panel code{font-size:8px;word-break:break-all;color:#9f738b}.analysis-log{font:9px/1.9 Consolas,monospace;max-height:230px;overflow:auto;scrollbar-width:thin;scrollbar-color:#623446 transparent}.analysis-log>div{white-space:pre-wrap;overflow-wrap:anywhere}.log-info{color:#b77b94}.log-ok{color:#e6a7c1}.log-warning{color:#cfab8b}.log-error{color:#f26890}.log-time{color:#735265;margin-right:9px}.sidebar-footer{padding:17px 24px;color:#6f5264;font:8px Consolas,monospace}.map-panel{position:relative;min-height:350px;isolation:isolate;background:#10090f}#map{position:absolute;inset:0;background:#10090f}.leaflet-container{background:#10090f!important;font-family:Segoe UI,Arial,sans-serif!important}.map-panel::after{content:'';position:absolute;inset:0;background:linear-gradient(#0f080eee,transparent 28%,transparent 75%,#10090ee0);pointer-events:none;z-index:401}.map-heading{position:absolute;top:27px;left:28px;right:25px;display:flex;justify-content:space-between;gap:15px;z-index:410;pointer-events:none}.map-heading h2{margin:9px 0 7px;font-size:27px;font-weight:500;letter-spacing:-.8px}.map-heading p{font-size:10px;line-height:1.6;color:#ad8197;margin:0;max-width:380px}.map-badge{align-self:flex-start;border:1px solid #6a334b;background:#311320e8;border-radius:20px;padding:8px 10px;color:#de9db7;font:8px Consolas,monospace;letter-spacing:1px;white-space:nowrap}.map-notice{position:absolute;z-index:415;left:50%;top:48%;transform:translate(-50%,-50%);width:min(380px,80%);text-align:center;background:#180c16e8;border:1px solid #613044;box-shadow:0 15px 60px #0005;border-radius:10px;padding:27px 24px}.map-notice>span{font-size:35px;color:#b45b7c}.map-notice h3{font-size:17px;font-weight:500;line-height:1.5;margin:15px 0 10px}.map-notice p{font-size:11px;line-height:1.8;color:#ac7c95;margin:0}.map-controls{position:absolute;z-index:410;right:22px;top:45%;border:1px solid #73334d;background:#25111ee8;border-radius:6px;display:flex;flex-direction:column;overflow:hidden}.map-controls button{height:35px;width:35px;background:transparent;border:0;border-bottom:1px solid #5d2940;color:#df9eb9;font-size:19px}.map-controls button:last-child{border:0}.map-controls button:not(:disabled):hover{background:#48172e}.coverage-note{position:absolute;left:28px;bottom:65px;z-index:410;max-width:calc(100% - 75px);font:9px/1.8 Consolas,monospace;color:#ba7d99;background:#190b15d9;border-left:2px solid #a44167;padding:11px 15px}.map-coordinate{position:absolute;left:28px;bottom:31px;z-index:410;font:12px Consolas,monospace;color:#f0b7cf;text-shadow:0 1px 4px #000}.leaflet-control-attribution{font-size:7px!important;background:#180b13e0!important;color:#b67e97!important;padding:3px 5px!important}.leaflet-control-attribution a{color:#d2a3ba!important}.leaflet-control-scale-line{background:#190b13c0!important;color:#bc7f9b!important;border-color:#a25c7a!important;text-shadow:none!important}.osm-label-anchor{background:transparent;border:0;pointer-events:none}.osm-label{display:block;text-align:center;white-space:nowrap;transform-origin:center center;font:9px/18px Segoe UI,Arial,sans-serif;color:#d1a0b5;text-shadow:-1px -1px 0 #170b12,1px -1px 0 #170b12,-1px 1px 0 #170b12,1px 1px 0 #170b12,0 0 5px #10070d}.osm-road{color:#cf89a4;letter-spacing:.4px}.osm-poi,.osm-place{color:#f0bed4;font-size:10px}.osm-parking,.osm-bus{font-size:8px;color:#9b5f7d}.poi-symbol{font-style:normal;color:#f17ba3;margin-right:3px}.gps-pin{width:47px;height:60px;filter:drop-shadow(0 4px 10px #0008);position:relative}.gps-pin-circle{position:absolute;width:43px;height:43px;background:linear-gradient(#7c2548,#300c20);border:2px solid #ffd3e4;border-radius:50%;display:grid;place-items:center;color:#fff0f6;font:26px Segoe UI,sans-serif;z-index:2}.gps-pin-tail{position:absolute;left:14px;top:34px;width:15px;height:15px;background:#3e1027;border-right:2px solid #ffd3e4;border-bottom:2px solid #ffd3e4;transform:rotate(45deg);z-index:1}.gps-point{position:absolute;top:55px;left:18px;width:7px;height:7px;border-radius:50%;background:#ff598e}.toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,10px);opacity:0;pointer-events:none;z-index:9999;background:#321424;border:1px solid #8c3a5c;color:#efb4cd;font-size:11px;line-height:1.6;padding:12px 18px;border-radius:6px;max-width:90%;transition:.2s}.toast.visible{opacity:1;transform:translate(-50%,0)}@keyframes breathe{50%{opacity:.3}}@media(min-width:1600px){.workspace{grid-template-columns:480px minmax(0,1fr)}.upload-section,.result-section,.metadata-section,.log-section{padding:26px 30px}.lead{font-size:13px}.metadata-table-wrap{max-height:370px}td{font-size:10px}}@media(max-width:1000px){.workspace{grid-template-columns:380px minmax(0,1fr)}.upload-section,.result-section,.metadata-section,.log-section{padding:20px}.map-heading{left:20px;right:18px;top:22px}.map-heading h2{font-size:22px}.map-heading .eyebrow{font-size:7px}.map-badge{font-size:7px;padding:7px}.map-heading p{max-width:210px}.coverage-note{left:20px;font-size:8px}.map-coordinate{left:20px;font-size:10px}.coordinate-row>b{font-size:17px}}@media(max-width:720px){html,body{height:auto}.topbar{height:55px;padding:0 15px;gap:12px}.brand{font-size:10px;letter-spacing:1px;gap:8px}.brand b{font-size:8px;letter-spacing:.8px}.brand-symbol{font-size:23px}.privacy{font-size:0;gap:0}.privacy>span{height:5px;width:5px}.workspace{height:auto;display:flex;flex-direction:column}.sidebar{overflow:visible;border-right:0}.upload-section{padding-top:23px}h1{font-size:26px}.map-panel{height:470px;min-height:470px;border-top:1px solid #5b2b42}.map-heading{top:23px}.map-heading h2{font-size:23px}.map-heading p{max-width:270px}.map-controls{right:17px}.coverage-note{bottom:54px}.map-coordinate{bottom:25px}.metadata-table-wrap{max-height:230px}.sidebar-footer{font-size:7px}.topbar .icon-button{width:29px;height:29px}.result-actions button{font-size:11px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style><style>/* META trace — dark red analysis instrument.
+   Tokens come from the brief; every text/background pair is checked by tests/contrast.test.cjs. */
+:root{
+  color-scheme:dark;
+  --void:#0D080D;--panel:#171016;--surface:#24141D;--raised:#321C29;
+  --line:#35202C;--line-strong:#6B3A52;
+  --accent:#EA668D;--accent-strong:#F48FAB;--accent-ink:#1A0A12;--accent-dim:#9A4563;
+  --ember:#F59A7E;--warn:#EDBA73;--danger:#FF8294;
+  --text:#F5EAF0;--muted:#BCA6B1;
+  --font-ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-num:"Bahnschrift","DIN Alternate","Cascadia Mono","SF Mono",Consolas,ui-monospace,monospace;
+  --topbar:56px;--radius-s:3px;--radius-m:6px;
+  --fs-s:12px;--fs-m:13.5px;--fs-l:16px;--fs-xl:21px;--fs-num:28px;
+  font-family:var(--font-ui);font-size:var(--fs-m);line-height:1.5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--void);color:var(--text)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.42}
+:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}
+[hidden]{display:none!important}
+h1,h2,h3,p,dl,dd,ul{margin:0}
+ul{padding:0;list-style:none}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.sprite{position:absolute}
+svg{width:18px;height:18px;flex:none}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ---- top bar ---------------------------------------------------------------- */
+.topbar{height:var(--topbar);display:flex;align-items:center;gap:20px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand-mark{align-self:center;width:24px;height:24px;color:var(--accent)}
+.brand-name{font-size:var(--fs-l);font-weight:650;letter-spacing:.01em}
+.brand-note{color:var(--muted);font-size:var(--fs-s)}
+.privacy{margin-left:auto;color:var(--muted);font-size:var(--fs-s);display:flex;align-items:center;gap:8px}
+.privacy::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.deck{display:flex;align-items:center;gap:10px}
+.chip,.icon-button{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border:1px solid var(--line-strong);border-radius:var(--radius-m);background:var(--surface);color:var(--text);font-size:var(--fs-s)}
+.chip:hover,.icon-button:hover{background:var(--raised)}
+.chip[aria-pressed="false"]{color:var(--muted)}
+.chip[data-state="blocked"]{border-color:var(--warn);color:var(--warn)}
+.icon-button{width:34px;padding:0;justify-content:center}
+.volume{display:flex;align-items:center;width:96px}
+.volume input{width:100%;accent-color:var(--accent);background:transparent;height:34px}
+.motion{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:var(--fs-s)}
+.motion select{min-height:34px;padding:0 10px;border:1px solid var(--line-strong);border-radius:var(--radius-m);background:var(--surface);color:var(--text);font-size:var(--fs-s)}
+
+/* ---- layout ----------------------------------------------------------------- */
+.workspace{display:grid;grid-template-columns:clamp(440px,34vw,600px) clamp(340px,25vw,420px) minmax(0,1fr);height:calc(100dvh - var(--topbar));min-height:540px}
+.col{display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.col-stage{background:linear-gradient(165deg,#1d1019 0%,var(--panel) 60%)}
+.col-rail{background:var(--panel);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.stage,.result,.details,.log-section{padding:20px}
+.section-title,.section-heading h2{font-size:var(--fs-l);font-weight:600}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.section-heading>span{color:var(--muted);font-size:var(--fs-s)}
+.empty{color:var(--muted);font-size:var(--fs-m);line-height:1.6;margin-top:10px}
+
+/* ---- image bay -------------------------------------------------------------- */
+.bay{--margin:62px;position:relative;display:grid;justify-items:center;padding:30px var(--margin) 12px;border-radius:var(--radius-s);
+  background:radial-gradient(90% 75% at 50% 32%,#34172a 0%,#1b0f19 58%,var(--panel) 100%);isolation:isolate}
+.bay[data-phase="idle"]{cursor:pointer}
+/* Reaches 18px into the column padding so drifting byte fragments have room beside the image. */
+.scan-canvas{position:absolute;left:-18px;top:0;width:calc(100% + 36px);height:100%;pointer-events:none;z-index:4}
+.frame{position:relative;width:min(100%,calc(44vh * var(--ar,1.3333)));aspect-ratio:var(--ar,1.3333);background:var(--void);box-shadow:0 0 0 1px var(--line)}
+.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.bay[data-phase="ready"] .frame img,.bay[data-phase="idle"] .frame img{animation:seat-image .35s ease-out both}
+@keyframes seat-image{from{opacity:0;transform:scale(1.015)}to{opacity:1;transform:none}}
+.preview-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:16px;text-align:center;color:var(--muted);font-size:var(--fs-s)}
+.bay-empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;text-align:center}
+.bay[data-phase="idle"] .bay-empty{display:flex}
+.bay-icon{width:30px;height:30px;color:var(--accent)}
+.bay-title{font-size:var(--fs-l);font-weight:600}
+.bay-note{color:var(--muted);font-size:var(--fs-s);max-width:30ch;line-height:1.55}
+.bay-note-small{opacity:.9}
+.bay.dragging .bracket{--bracket:var(--accent-strong);transform:translate(calc(var(--dx)*-.45),calc(var(--dy)*-.45))}
+.bay.dragging .frame{box-shadow:0 0 0 1px var(--accent-dim)}
+
+/* viewfinder: brackets and rulers */
+.bracket{--dx:-16px;--dy:-16px;position:absolute;width:22px;height:22px;border:0 solid var(--bracket,var(--accent));pointer-events:none;z-index:3;transition:opacity .25s,border-color .25s,transform .25s;opacity:.6}
+.bracket.tl{top:-7px;left:-7px;border-top-width:2px;border-left-width:2px}
+.bracket.tr{--dx:16px;top:-7px;right:-7px;border-top-width:2px;border-right-width:2px}
+.bracket.bl{--dy:16px;bottom:-7px;left:-7px;border-bottom-width:2px;border-left-width:2px}
+.bracket.br{--dx:16px;--dy:16px;bottom:-7px;right:-7px;border-bottom-width:2px;border-right-width:2px}
+.ruler{position:absolute;pointer-events:none;opacity:0;transition:opacity .3s;z-index:2;
+  --tick:repeating-linear-gradient(90deg,var(--accent-dim) 0 1px,transparent 1px 8px)}
+.ruler-x{left:0;right:0;top:-12px;height:5px;background:var(--tick);-webkit-mask:repeating-linear-gradient(90deg,#000 0 1px,transparent 1px 8px)}
+.ruler-y{top:0;bottom:0;left:-12px;width:5px;background:repeating-linear-gradient(180deg,var(--accent-dim) 0 1px,transparent 1px 8px)}
+.depth{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s;
+  background:radial-gradient(125% 125% at 50% 50%,transparent 52%,rgba(13,8,13,.72) 100%),linear-gradient(rgba(234,102,141,.07),transparent 45%)}
+.sweep{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .3s;z-index:2}
+.sweep-run{position:absolute;inset:0;transform:translateY(-100%);background:linear-gradient(to bottom,transparent 55%,rgba(234,102,141,.2) 100%)}
+.sweep-run::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent-strong);box-shadow:0 0 10px 1px rgba(234,102,141,.65)}
+.ticker{display:flex;gap:8px;width:100%;height:22px;margin-top:12px;align-items:center;font-size:var(--fs-s);color:var(--muted);white-space:nowrap;overflow:hidden;opacity:0;transition:opacity .18s}
+.ticker.on{opacity:1}
+.ticker-key{color:var(--accent-strong)}
+.ticker-value{overflow:hidden;text-overflow:ellipsis}
+
+/* phases */
+.bay[data-phase="ready"] .depth{opacity:.5}
+.bay[data-phase="ready"] .bracket{opacity:.85}
+.bay[data-phase="acquire"] .bracket{animation:seat var(--t-acquire,300ms) cubic-bezier(.2,.8,.2,1) both;opacity:1}
+.bay[data-phase="acquire"] .depth,.bay[data-phase="scan"] .depth,.bay[data-phase="reveal"] .depth,.bay[data-phase="resolve"] .depth,.bay[data-phase="fly"] .depth{opacity:1}
+.bay[data-phase="scan"] .ruler,.bay[data-phase="reveal"] .ruler{opacity:.9}
+.bay[data-phase="scan"] .bracket,.bay[data-phase="reveal"] .bracket,.bay[data-phase="resolve"] .bracket,.bay[data-phase="fly"] .bracket{opacity:1}
+.bay[data-phase="scan"] .sweep{opacity:1}
+.bay[data-phase="scan"] .sweep-run{animation:sweep var(--t-sweep,900ms) linear infinite}
+.bay[data-phase="lock"] .bracket{--bracket:var(--ember);opacity:1;animation:lock var(--t-lock,500ms) ease-out both}
+.bay[data-phase="settled"] .depth{opacity:.3}
+.bay[data-phase="settled"] .bracket{opacity:.6}
+.bay[data-outcome="neutral"] .bracket{--bracket:var(--muted)}
+.bay[data-outcome="warning"] .bracket{--bracket:var(--warn)}
+.bay[data-phase="error"] .bracket,.bay[data-outcome="error"] .bracket{--bracket:var(--danger);opacity:1}
+.bay[data-clean="true"] .depth,.bay[data-clean="true"] .sweep,.bay[data-clean="true"] .ruler,.bay[data-clean="true"] .scan-canvas,.bay[data-clean="true"] .ticker{opacity:0!important}
+.bay[data-clean="true"] .bracket{opacity:.25!important}
+@keyframes seat{from{transform:translate(var(--dx),var(--dy));opacity:0}to{transform:none;opacity:1}}
+@keyframes sweep{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes lock{from{transform:translate(calc(var(--dx)*.9),calc(var(--dy)*.9));opacity:.2}to{transform:none;opacity:1}}
+
+/* ---- file, outcome and controls ---------------------------------------------- */
+.file-card{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:14px}
+.file-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.file-details{color:var(--muted);font-size:var(--fs-s);white-space:nowrap}
+.outcome{display:flex;gap:12px;margin-top:14px;padding:14px 14px 14px 13px;background:var(--surface);border-left:3px solid var(--line-strong)}
+.outcome-icon{width:22px;height:22px;margin-top:1px;color:var(--muted)}
+.outcome h2{font-size:var(--fs-l);font-weight:600;line-height:1.3}
+.outcome p{color:var(--muted);margin-top:4px;line-height:1.55}
+.outcome[data-kind="busy"]{border-left-color:var(--accent-dim)}
+.outcome[data-kind="busy"] .outcome-icon{color:var(--accent);animation:breathe 1.3s ease-in-out infinite}
+.outcome[data-kind="success"]{border-left-color:var(--accent)}
+.outcome[data-kind="success"] .outcome-icon{color:var(--accent)}
+.outcome[data-kind="warning"]{border-left-color:var(--warn)}
+.outcome[data-kind="warning"] .outcome-icon{color:var(--warn)}
+.outcome[data-kind="error"]{border-left-color:var(--danger);background:#2c1219}
+.outcome[data-kind="error"] .outcome-icon{color:var(--danger)}
+@keyframes breathe{50%{opacity:.35}}
+.controls{display:grid;gap:8px;margin-top:14px}
+.controls-primary{display:flex;gap:8px}
+.controls-secondary{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line-strong);border-radius:var(--radius-m);background:var(--surface);color:var(--text);font-size:var(--fs-m);font-weight:500;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn:not(:disabled):hover{background:var(--raised);border-color:var(--accent-dim)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+.btn-primary:not(:disabled):hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+.btn-wide{flex:1}
+.btn-quiet{background:transparent;border-color:var(--line);color:var(--muted);min-height:36px;font-size:var(--fs-s)}
+.btn-quiet:not(:disabled):hover{color:var(--text);background:var(--surface)}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--text)}
+
+/* ---- log -------------------------------------------------------------------- */
+.log-section{border-top:1px solid var(--line);flex:1;min-height:150px}
+.analysis-log{font-size:var(--fs-s);line-height:1.8;max-height:260px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.log-line{display:flex;gap:12px;overflow-wrap:anywhere}
+.log-time{flex:none;width:64px;color:var(--muted);text-align:right}
+.log-info{color:var(--text)}
+.log-ok{color:var(--accent-strong)}
+.log-warning{color:var(--warn)}
+.log-error{color:var(--danger)}
+.log-display{color:var(--muted)}
+
+/* ---- rail: result and metadata ------------------------------------------------ */
+.result{border-bottom:1px solid var(--line)}
+.readout{margin-top:14px;padding:16px;background:var(--surface);border-left:3px solid var(--accent)}
+.axis{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:2px 12px}
+.axis+.axis{margin-top:14px}
+.axis-name{color:var(--muted);font-size:var(--fs-s)}
+.readout-value{position:relative;justify-self:end;display:block}
+.axis b{display:block;font-size:var(--fs-num);font-weight:500;line-height:1.15;text-align:right;white-space:nowrap}
+.fx{position:absolute;inset:0;text-align:right;font-size:var(--fs-num);line-height:1.15;color:var(--accent-strong);pointer-events:none;white-space:nowrap}
+.is-scrambling{color:transparent!important}
+.dms{grid-column:1/-1;justify-self:end;color:var(--muted);font-size:var(--fs-m)}
+.extras{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-strong)}
+.extras dt{color:var(--muted);font-size:var(--fs-s)}
+.extras dd{margin-top:2px;font-size:var(--fs-l)}
+.candidates{margin-top:14px;padding:14px;background:var(--surface);border-left:3px solid var(--warn)}
+.candidates h3{font-size:var(--fs-m);font-weight:600}
+.candidates li{margin-top:10px;font-size:var(--fs-m)}
+.candidates li span{display:block;color:var(--muted);font-size:var(--fs-s)}
+.capture-summary{margin-top:16px;display:grid;gap:6px}
+.capture-summary>div{display:flex;gap:16px;justify-content:space-between}
+.capture-summary dt{color:var(--muted);white-space:nowrap}
+.capture-summary dd{text-align:right;overflow-wrap:anywhere}
+.result-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.result-actions .btn{flex:1;min-width:150px}
+.evidence-note{margin-top:14px;color:var(--muted);font-size:var(--fs-s);line-height:1.65}
+.details{flex:1 0 360px;min-height:360px;display:flex;flex-direction:column}
+.tag-search{width:100%;min-height:38px;padding:0 12px;margin-bottom:10px;background:var(--void);border:1px solid var(--line-strong);border-radius:var(--radius-m);color:var(--text);font-size:var(--fs-m)}
+.tag-search::placeholder{color:var(--muted);opacity:.85}
+.metadata-table-wrap{flex:1;min-height:220px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{position:sticky;top:0;z-index:1;background:var(--panel);text-align:left;font-size:var(--fs-s);font-weight:500;color:var(--muted);padding:8px 8px 8px 0;border-bottom:1px solid var(--line-strong)}
+th:first-child{width:46%}
+td{vertical-align:top;padding:7px 8px 7px 0;border-bottom:1px solid var(--line);font-size:var(--fs-s);line-height:1.6;overflow-wrap:anywhere}
+td:first-child{color:var(--muted)}
+tr.group td{padding:14px 0 6px;color:var(--text);font-weight:600;font-size:var(--fs-m);border-bottom:1px solid var(--line-strong)}
+tr.group.is-gps td{color:var(--accent-strong)}
+tr.is-gps td:first-child{box-shadow:inset 3px 0 0 var(--accent);padding-left:10px;color:var(--text)}
+tbody.revealing tr.row-in{animation:row-in .32s ease-out both;animation-delay:calc(var(--i,0) * 38ms)}
+@keyframes row-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.hash-panel{margin-top:14px;display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:var(--fs-s)}
+.hash-panel code{word-break:break-all;color:var(--text)}
+
+/* ---- map ------------------------------------------------------------------- */
+.map-panel{position:relative;min-height:380px;background:#10090f;isolation:isolate;overflow:hidden}
+#map{position:absolute;inset:0;background:#10090f}
+.leaflet-container{background:#10090f!important;font-family:var(--font-ui)!important}
+.map-panel::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(15,8,14,.92),transparent 22%,transparent 80%,rgba(16,9,14,.85));pointer-events:none;z-index:401}
+.map-heading{position:absolute;top:22px;left:24px;right:24px;display:flex;justify-content:space-between;gap:16px;z-index:410;pointer-events:none}
+.map-heading h2{font-size:var(--fs-xl);font-weight:600}
+.map-heading p{color:var(--muted);font-size:var(--fs-m);margin-top:4px;max-width:44ch;text-shadow:0 1px 6px #000}
+.map-badge{align-self:flex-start;padding:6px 12px;border:1px solid var(--line-strong);border-radius:99px;background:rgba(36,20,29,.9);color:var(--text);font-size:var(--fs-s);white-space:nowrap}
+.map-notice{position:absolute;z-index:415;left:50%;top:48%;transform:translate(-50%,-50%);width:min(380px,82%);text-align:center;background:rgba(23,16,22,.93);border:1px solid var(--line-strong);border-radius:8px;padding:24px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.map-notice svg{width:30px;height:30px;color:var(--accent)}
+.map-notice h3{font-size:var(--fs-l);font-weight:600;margin:12px 0 8px}
+.map-notice p{color:var(--muted);line-height:1.65}
+.map-controls{position:absolute;z-index:410;right:20px;top:46%;border:1px solid var(--line-strong);background:rgba(36,20,29,.94);border-radius:var(--radius-m);display:flex;flex-direction:column;overflow:hidden}
+.map-controls button{width:40px;height:40px;display:grid;place-items:center;background:transparent;border:0;border-bottom:1px solid var(--line-strong);color:var(--text)}
+.map-controls button:last-child{border:0}
+.map-controls button:not(:disabled):hover{background:var(--raised)}
+.coverage-note{position:absolute;left:24px;bottom:58px;z-index:410;max-width:min(520px,calc(100% - 110px));color:var(--muted);font-size:var(--fs-s);line-height:1.6;background:rgba(23,16,22,.88);border-left:2px solid var(--accent-dim);padding:10px 14px}
+.map-coordinate{position:absolute;left:24px;bottom:24px;z-index:410;font-size:var(--fs-l);color:var(--text);text-shadow:0 1px 5px #000}
+.leaflet-control-attribution{font-size:11px!important;background:rgba(23,16,22,.88)!important;color:var(--muted)!important;padding:2px 6px!important}
+.leaflet-control-attribution a{color:var(--accent-strong)!important}
+.leaflet-control-scale-line{background:rgba(23,16,22,.8)!important;color:var(--text)!important;border-color:var(--accent-dim)!important;text-shadow:none!important;font-size:11px!important}
+.trace-canvas{position:absolute;left:0;top:0;pointer-events:none}
+
+/* pin: a reticle whose centre dot is the exact coordinate */
+.trace-pin-icon{background:transparent;border:0}
+.trace-pin{position:relative;width:64px;height:64px}
+.trace-pin .reticle{position:absolute;inset:0;width:64px;height:64px;color:var(--accent-strong);filter:drop-shadow(0 0 6px rgba(234,102,141,.5));overflow:visible}
+.trace-pin .ring{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border:1.5px solid var(--accent-strong);border-radius:50%;opacity:0;pointer-events:none}
+.trace-pin[data-lock="true"] .reticle{animation:reticle-lock var(--t-lock,500ms) cubic-bezier(.2,.8,.2,1) both}
+.trace-pin[data-lock="true"] .ring{animation:ring-out calc(var(--t-lock,500ms) * 1.8) ease-out both}
+.trace-pin[data-lock="true"] .ring.r2{animation-delay:calc(var(--t-lock,500ms) * .35)}
+@keyframes reticle-lock{from{transform:scale(2);opacity:0}to{transform:none;opacity:1}}
+@keyframes ring-out{0%{transform:scale(.6);opacity:.85}100%{transform:scale(3.4);opacity:0}}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line-strong);border-radius:8px!important;box-shadow:0 12px 36px rgba(0,0,0,.55)!important}
+.leaflet-popup-tip{background:var(--surface)!important;border:1px solid var(--line-strong)}
+.leaflet-popup-content{margin:14px 16px!important;font-family:var(--font-ui)!important;font-size:var(--fs-m)!important;line-height:1.5!important}
+a.leaflet-popup-close-button{color:var(--muted)!important;font-size:20px!important;padding:6px 8px 0 0!important}
+.pin-card{min-width:230px;padding-right:12px}
+.pin-pair{font-size:var(--fs-l);font-weight:500}
+.pin-card dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin-top:10px}
+.pin-card dt{color:var(--muted);font-size:var(--fs-s)}
+.pin-card dd{text-align:right;font-size:var(--fs-s)}
+.pin-card p{margin-top:10px;color:var(--muted);font-size:var(--fs-s)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,10px);opacity:0;pointer-events:none;z-index:9999;background:var(--raised);border:1px solid var(--line-strong);color:var(--text);font-size:var(--fs-m);line-height:1.5;padding:12px 18px;border-radius:var(--radius-m);max-width:90%;transition:opacity .2s,transform .2s}
+.toast.visible{opacity:1;transform:translate(-50%,0)}
+
+/* ---- responsive: stage / result side by side, then a single column ---------------- */
+@media (max-width:1180px){
+  html,body{height:auto;overflow:auto}
+  .workspace{height:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"stage result" "map map" "details log"}
+  .col{display:contents}
+  .stage{grid-area:stage;background:linear-gradient(165deg,#1d1019,var(--panel) 60%)}
+  .result{grid-area:result;background:var(--panel);border-bottom:0}
+  .map-panel{grid-area:map;height:min(62vh,560px);border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+  .details{grid-area:details;background:var(--panel)}
+  .log-section{grid-area:log;background:var(--panel);border-top:0}
+  .metadata-table-wrap{max-height:420px}
+  .bay{--margin:56px}
+  .frame{width:min(100%,calc(40vh * var(--ar,1.3333)))}
+}
+@media (max-width:720px){
+  .topbar{height:auto;min-height:var(--topbar);flex-wrap:wrap;gap:8px 12px;padding:8px 16px}
+  .privacy{display:none}
+  .brand-note{display:none}
+  .deck{margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+  .volume{width:72px}
+  .motion span{display:none}
+  .workspace{display:flex;flex-direction:column}
+  .stage{order:1;padding:16px}.result{order:2;padding:16px;border-bottom:1px solid var(--line)}.map-panel{order:3;height:480px}.details{order:4;padding:16px}.log-section{order:5;padding:16px}
+  .bay{--margin:36px;padding-top:24px}
+  .frame{width:min(100%,calc(46vh * var(--ar,1.3333)))}
+  .btn{min-height:44px}
+  .btn-quiet{min-height:44px}
+  .chip,.icon-button,.motion select{min-height:44px}
+  .icon-button{width:44px}
+  .map-heading{left:16px;right:16px;top:16px}
+  .map-heading h2{font-size:var(--fs-l)}
+  .map-heading p{display:none}
+  .coverage-note{left:16px;bottom:52px}
+  .map-coordinate{left:16px;bottom:18px;font-size:var(--fs-m)}
+  .map-controls{right:14px}
+  .map-controls button{width:44px;height:44px}
+  .axis b,.fx{font-size:24px}
+  .result-actions .btn{min-width:0}
+}
+
+/* ---- reduced motion: brief fades only. Set from the Motion control or the OS preference. ---------- */
+[data-motion="reduced"] *,[data-motion="reduced"] *::before,[data-motion="reduced"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-property:opacity!important;transition-duration:.18s!important}
+[data-motion="reduced"] .sweep,[data-motion="reduced"] .ruler{display:none}
+[data-motion="reduced"] .outcome[data-kind="busy"] .outcome-icon{animation:none!important}
+[data-motion="reduced"] .trace-pin .ring{display:none}
+[data-motion="reduced"] tbody.revealing tr.row-in{animation:fade-in .2s ease-out both!important;animation-delay:0s!important}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
 </style>
 </head>
-<body>
-<header class="topbar"><div class="brand"><span class="brand-symbol">⌖</span>CRIMSON <span class="slash">/</span><b>IMAGE METADATA</b></div><div class="privacy"><span></span>LOCAL PROCESSING</div><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></header>
-<main class="workspace">
-  <aside class="sidebar">
-    <section class="upload-section">
-      <span class="eyebrow">READ WHAT THE FILE CONTAINS</span><h1>A location, if it’s there.</h1><p class="lead">Open an image to inspect its metadata and map its embedded GPS coordinates.</p>
-      <label id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose an image or drop one here"><input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.webp,.heic,.heif,.avif"><span class="upload-icon">↥</span><b>Choose an image</b><span>or drag and drop it here</span></label>
-      <p class="supported">JPEG · PNG · TIFF · WebP · HEIC/AVIF* <span>64 MiB max</span></p>
-      <p class="format-note">*HEIC/AVIF compatibility depends on the metadata variant.</p>
-      <div id="fileCard" class="file-card" hidden><div class="preview-wrap"><img id="preview" alt="Selected image preview"><span id="previewFallback" hidden>IMAGE</span></div><div class="file-info"><b id="fileName"></b><span id="fileDetails"></span></div><button id="clear" class="icon-button" aria-label="Clear image" title="Clear">×</button></div>
+<body data-presentation="idle" data-analysis="idle">
+<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <symbol id="i-mark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4m0 0L8 8m4-4 4 4M4.5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound-on" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12.5 19V5L7.5 9.5H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound-off" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12.5 19V5L7.5 9.5H4zM16.5 9.5l4.5 5M21 9.5l-4.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4.5 4.5v4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5.5l9 6.5-9 6.5zM18.5 5v14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9h10v10H9zM5 15V5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5.5M12 7.8v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-busy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3.2"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12.3l2.8 2.8L16.2 9.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4.5M12 16.9v.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand"><svg class="brand-mark" aria-hidden="true"><use href="#i-mark"/></svg><span class="brand-name">META trace</span><span class="brand-note">Image metadata</span></div>
+  <p class="privacy">Processed on this device</p>
+  <div class="deck" role="group" aria-label="Sound and motion">
+    <button id="soundToggle" class="chip" type="button" aria-pressed="true"><svg aria-hidden="true"><use id="soundIcon" href="#i-sound-on"/></svg><span id="soundLabel">Sound on</span></button>
+    <label class="volume" title="Volume"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" step="1" value="70"></label>
+    <label class="motion"><span>Motion</span><select id="motion"><option value="full">Cinematic</option><option value="fast">Fast</option><option value="reduced">Reduced</option></select></label>
+    <button id="fullscreen" class="icon-button" type="button" aria-label="Toggle fullscreen" title="Fullscreen"><svg aria-hidden="true"><use href="#i-expand"/></svg></button>
+  </div>
+</header>
+
+<main id="main" class="workspace">
+  <div class="col col-stage">
+    <section class="stage" aria-labelledby="stageHeading">
+      <h1 id="stageHeading" class="sr-only">Image inspection</h1>
+      <div id="bay" class="bay" data-phase="idle" data-clean="false" role="group" aria-label="Image bay. Drop an image here or use Choose an image.">
+        <canvas id="scanCanvas" class="scan-canvas" aria-hidden="true"></canvas>
+        <div id="frame" class="frame">
+          <img id="preview" alt="Selected image" hidden>
+          <div id="previewFallback" class="preview-fallback" hidden>No preview available for this file</div>
+          <div class="depth" aria-hidden="true"></div>
+          <div class="sweep" aria-hidden="true"><div class="sweep-run"></div></div>
+          <i class="ruler ruler-x" aria-hidden="true"></i><i class="ruler ruler-y" aria-hidden="true"></i>
+          <i class="bracket tl" aria-hidden="true"></i><i class="bracket tr" aria-hidden="true"></i><i class="bracket bl" aria-hidden="true"></i><i class="bracket br" aria-hidden="true"></i>
+          <div id="bayEmpty" class="bay-empty">
+            <svg class="bay-icon" aria-hidden="true"><use href="#i-upload"/></svg>
+            <p class="bay-title">Drop an image to inspect it</p>
+            <p class="bay-note">JPEG, PNG, TIFF, WebP, HEIC or AVIF, up to 64 MiB. Nothing is uploaded.</p>
+            <button id="chooseButton" class="btn btn-primary" type="button">Choose an image</button>
+          </div>
+        </div>
+        <div id="ticker" class="ticker" aria-hidden="true"><span class="ticker-key"></span><span class="ticker-value num"></span></div>
+      </div>
+      <div id="fileCard" class="file-card" hidden><b id="fileName" class="file-name"></b><span id="fileDetails" class="file-details"></span></div>
+      <div id="status" class="outcome" data-kind="neutral">
+        <svg class="outcome-icon" aria-hidden="true"><use id="statusIcon" href="#i-info"/></svg>
+        <div><h2 id="statusTitle">Waiting for an image</h2><p id="statusMessage">Your file stays on this device.</p></div>
+      </div>
+      <div class="controls">
+        <div class="controls-primary">
+          <button id="analyze" class="btn btn-primary btn-wide" type="button" disabled>Analyze</button>
+          <button id="skip" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-skip"/></svg><span id="skipLabel">Skip animation</span></button>
+        </div>
+        <div class="controls-secondary">
+          <button id="changeImage" class="btn btn-quiet" type="button" disabled>Change image</button>
+          <button id="replay" class="btn btn-quiet" type="button" disabled><svg aria-hidden="true"><use href="#i-replay"/></svg>Replay</button>
+          <button id="cleanView" class="btn btn-quiet" type="button" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-eye"/></svg>Clean view</button>
+          <button id="clear" class="btn btn-quiet" type="button" disabled>Clear</button>
+        </div>
+      </div>
+      <input id="fileInput" class="sr-only" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.webp,.heic,.heif,.avif" tabindex="-1" aria-label="Choose an image file">
     </section>
-    <section class="result-section">
-      <div id="status" class="status-banner neutral" role="status" aria-live="polite"><span id="statusIcon">○</span><div><h2 id="statusTitle">Waiting for an image</h2><p id="statusMessage">Your file stays on this device.</p></div></div>
-      <div id="coordinates" class="coordinates" hidden><div class="coordinate-row"><span>LATITUDE</span><b id="latitude"></b></div><p id="latitudeDMS"></p><div class="coordinate-row"><span>LONGITUDE</span><b id="longitude"></b></div><p id="longitudeDMS"></p><div class="coordinate-extras"><div><span>ELEVATION</span><b id="altitude">Not recorded</b></div><div><span>POSITION ERROR</span><b id="accuracy">Not recorded</b></div></div></div>
-      <div id="captureSummary" class="capture-summary" hidden></div>
-      <div class="result-actions"><button id="copyCoordinates" disabled>Copy coordinates</button><button id="exportReport" disabled>Export JSON ↗</button></div>
-      <p class="evidence-note">GPS tags can be edited. Embedded coordinates are a record in the file, not proof of the camera’s location.</p>
+    <section class="log-section" aria-labelledby="logHeading">
+      <div class="section-heading"><h2 id="logHeading">Analysis log</h2><span id="elapsed" class="num">—</span></div>
+      <div id="analysisLog" class="analysis-log" role="log" aria-live="off"><div class="log-line log-info"><span class="log-time num">ready</span><span>Ready to read a local image.</span></div></div>
     </section>
-    <section class="metadata-section"><div class="section-heading"><h2>Embedded metadata</h2><span id="tagCount">0 tags</span></div><input id="tagSearch" class="tag-search" type="search" placeholder="Filter tags…" aria-label="Filter metadata tags"><div id="metadataEmpty" class="empty-table">Image metadata will appear here.</div><div class="metadata-table-wrap"><table id="metadataTable" hidden><thead><tr><th>Tag</th><th>Value</th></tr></thead><tbody id="metadataBody"></tbody></table></div><div id="hashPanel" class="hash-panel" hidden><span>FILE SHA-256</span><code id="fileHash"></code></div></section>
-    <section class="log-section"><div class="section-heading"><h2>Analysis log</h2><span id="elapsed">—</span></div><div id="analysisLog" class="analysis-log" role="log" aria-live="off"><div class="log-info">Ready to read a local image.</div></div></section>
-    <footer class="sidebar-footer">Offline metadata inspection · no model or API key needed</footer>
-  </aside>
-  <section class="map-panel" aria-label="GPS map">
-    <div id="map" role="img" aria-label="Offline map for embedded GPS coordinates"></div>
-    <div class="map-heading"><div><span class="eyebrow">COORDINATE VIEW</span><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE / WORLD</span></div>
-    <div id="mapNotice" class="map-notice"><span id="mapNoticeIcon">⌖</span><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
-    <div class="map-controls"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="recenter" aria-label="Recenter GPS marker" disabled>⌖</button></div>
-    <div id="coverageNote" class="coverage-note">World outlines are included. Detailed streets are bundled for the Gainesville / UF area.</div>
-    <div id="mapCoordinate" class="map-coordinate" hidden></div>
+  </div>
+
+  <div class="col col-rail">
+    <section id="result" class="result" aria-labelledby="resultHeading">
+      <h2 id="resultHeading" class="section-title">Location</h2>
+      <p id="resultEmpty" class="empty">Coordinates appear here when the file records a valid GPS position.</p>
+      <div id="coordinates" class="readout" hidden>
+        <div class="axis"><span class="axis-name">Latitude</span><span class="readout-value"><b id="latitude" class="num"></b><span id="latitudeFx" class="num fx" aria-hidden="true"></span></span><p id="latitudeDMS" class="dms num"></p></div>
+        <div class="axis"><span class="axis-name">Longitude</span><span class="readout-value"><b id="longitude" class="num"></b><span id="longitudeFx" class="num fx" aria-hidden="true"></span></span><p id="longitudeDMS" class="dms num"></p></div>
+        <dl class="extras"><div><dt>Elevation</dt><dd id="altitude" class="num">Not recorded</dd></div><div><dt>Position error</dt><dd id="accuracy" class="num">Not recorded</dd></div></dl>
+      </div>
+      <div id="candidates" class="candidates" hidden><h3>Candidates in the file</h3><p class="empty">None of these has been chosen. Compare their sources before relying on any of them.</p><ul id="candidateList"></ul></div>
+      <dl id="captureSummary" class="capture-summary" hidden></dl>
+      <div class="result-actions">
+        <button id="copyCoordinates" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-copy"/></svg>Copy coordinates</button>
+        <button id="exportReport" class="btn" type="button" disabled><svg aria-hidden="true"><use href="#i-download"/></svg>Export report</button>
+      </div>
+      <p class="evidence-note">GPS tags can be edited. Embedded coordinates are a record in the file, not proof of where the camera was.</p>
+    </section>
+    <section id="details" class="details" aria-labelledby="detailsHeading">
+      <div class="section-heading"><h2 id="detailsHeading">Embedded metadata</h2><span id="tagCount" class="num">0 tags</span></div>
+      <input id="tagSearch" class="tag-search" type="search" placeholder="Filter tags" aria-label="Filter metadata tags">
+      <div id="metadataEmpty" class="empty">Image metadata will appear here.</div>
+      <div class="metadata-table-wrap"><table id="metadataTable" hidden><thead><tr><th scope="col">Tag</th><th scope="col">Value</th></tr></thead><tbody id="metadataBody"></tbody></table></div>
+      <div id="hashPanel" class="hash-panel" hidden><span>SHA-256 of this file</span><code id="fileHash" class="num"></code></div>
+    </section>
+  </div>
+
+  <section class="map-panel" aria-label="Map">
+    <div id="map" role="img" aria-label="Offline map. The pin marks the GPS position embedded in the image."></div>
+    <div class="map-heading"><div><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE MAP</span></div>
+    <div id="mapNotice" class="map-notice"><svg id="mapNoticeSvg" aria-hidden="true"><use id="mapNoticeIcon" href="#i-info"/></svg><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
+    <div class="map-controls"><button id="zoomIn" type="button" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button><button id="zoomOut" type="button" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button><button id="recenter" type="button" aria-label="Recenter on the GPS position" disabled><svg aria-hidden="true"><use href="#i-locate"/></svg></button></div>
+    <div id="coverageNote" class="coverage-note">World outlines are included. Street detail is bundled for the Gainesville and University of Florida area.</div>
+    <div id="mapCoordinate" class="map-coordinate num" hidden></div>
   </section>
 </main>
+
+<div id="announce" class="sr-only" role="status" aria-live="polite"></div>
+<div id="announceAlert" class="sr-only" role="alert"></div>
 <div id="toast" class="toast" role="status"></div>
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -862,85 +1246,2121 @@ window.TRACE_WORLD_LABELS=[{"text":"Fiji","lat":-17.826099,"lon":177.975427,"kin
   }
 return {selectLabels};
 });
-</script><script>(() => {
+</script><script>/*
+ * Trace canvas layer: the offline base map, drawn crisply on every frame.
+ *
+ * Why this exists: Leaflet's canvas renderer redraws by re-projecting every
+ * feature (about 12,700 separate layers here), which costs far too much to do
+ * per frame. During an animated flight it therefore only CSS-scales the last
+ * bitmap, which smears a wide-to-street descent into blocks. This layer instead
+ * pre-builds vector geometry once as Path2D objects in a fixed "world pixel at
+ * zoom 0" space, then draws each frame with a single affine transform. A spatial
+ * grid culls what is off screen and level-of-detail rules thin out what is too
+ * small to read, so streets and buildings stay sharp from regional to street scale.
+ *
+ * It draws only data bundled with the app (Natural Earth overview, OpenStreetMap
+ * geometry for the Gainesville / UF area) and never requests anything.
+ * Leaflet remains responsible for the camera, markers, popup and controls.
+ */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.TraceCanvasLayer=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const $=id=>document.getElementById(id),Core=MetadataCore;
-  const ui={report:null,token:0,previewURL:null,map:null,pin:null,accuracy:null,local:false,labels:null,details:null,roads:null,casing:null,job:null,refreshTimer:null};
-  const mapData=window.TRACE_MAP_DATA,mapMeta=window.TRACE_MAP_META;
-  const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('visible'),4200);}
-  function log(text,kind='info'){const line=document.createElement('div');line.className='log-'+kind;const time=document.createElement('span');time.className='log-time';time.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});line.append(time,document.createTextNode(text));$('analysisLog').append(line);$('analysisLog').scrollTop=$('analysisLog').scrollHeight;}
-  function status(title,message,kind='neutral'){$('status').className='status-banner '+kind;$('status').setAttribute('role',['warning','error'].includes(kind)?'alert':'status');$('statusTitle').textContent=title;$('statusMessage').textContent=message;$('statusIcon').textContent=({neutral:'○',busy:'◌',success:'⌖',warning:'!',error:'×'})[kind];}
-  function notice(title,message,icon='⌖'){$('mapNoticeTitle').textContent=title;$('mapNoticeText').textContent=message;$('mapNoticeIcon').textContent=icon;$('mapNotice').hidden=false;}
-  function clearMarker(){if(ui.pin){ui.pin.remove();ui.pin=null;}if(ui.accuracy){ui.accuracy.remove();ui.accuracy=null;}$('mapCoordinate').hidden=true;$('recenter').disabled=true;}
-  function clearResults(){ui.report=null;clearMarker();$('coordinates').hidden=true;$('captureSummary').hidden=true;$('captureSummary').replaceChildren();$('metadataBody').replaceChildren();$('metadataTable').hidden=true;$('metadataEmpty').hidden=false;$('metadataEmpty').textContent='Image metadata will appear here.';$('tagCount').textContent='0 tags';$('copyCoordinates').disabled=true;$('exportReport').disabled=true;$('hashPanel').hidden=true;$('fileHash').textContent='';$('tagSearch').value='';$('mapTitle').textContent='Embedded GPS';$('mapSubtitle').textContent='Select an image to locate its GPS tags.';$('coverageBadge').textContent='OFFLINE MAP';$('coverageNote').textContent='World overview and bundled Gainesville streets. Only validated image GPS is plotted.';}
-  function cancelCurrent(){if(ui.job){ui.job.cancel();ui.job=null;}ui.token++;}
-  function clearImage(){cancelCurrent();clearResults();$('fileInput').value='';$('fileCard').hidden=true;if(ui.previewURL){URL.revokeObjectURL(ui.previewURL);ui.previewURL=null;}$('preview').removeAttribute('src');$('preview').hidden=true;$('analysisLog').replaceChildren();$('elapsed').textContent='—';status('Waiting for an image','Your file stays on this device.');notice('No image selected','Only coordinates embedded in your image will be plotted.');document.body.setAttribute('aria-busy','false');log('Ready to read a local image.');}
-  async function hash(bytes){if(!globalThis.crypto?.subtle)return null;try{const d=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(d),b=>b.toString(16).padStart(2,'0')).join('');}catch{return null;}}
-  function preview(file,format){if(ui.previewURL)URL.revokeObjectURL(ui.previewURL);$('preview').hidden=true;$('previewFallback').hidden=false;const safeMime={jpeg:'image/jpeg',png:'image/png',webp:'image/webp',tiff:'image/tiff',heic:'image/heic',avif:'image/avif'}[format];ui.previewURL=URL.createObjectURL(new Blob([file],{type:safeMime}));$('preview').onload=()=>{$('preview').hidden=false;$('previewFallback').hidden=true;};$('preview').onerror=()=>{$('preview').hidden=true;$('previewFallback').hidden=false;};$('preview').src=ui.previewURL;}
-  async function parseFile(file,buffer,token){
-    if(typeof Worker!=='function')return MetadataParser.parse(buffer);
-    let worker,url;
-    try{url=URL.createObjectURL(new Blob([window.METADATA_WORKER_SOURCE],{type:'text/javascript'}));worker=new Worker(url);URL.revokeObjectURL(url);}
-    catch{if(url)URL.revokeObjectURL(url);log('Worker unavailable; using the local parser.','warning');return MetadataParser.parse(buffer);}
-    return new Promise((resolve,reject)=>{
-      let done=false;const finish=(fn,value)=>{if(done)return;done=true;clearTimeout(timer);worker.terminate();if(ui.job===job)ui.job=null;fn(value);};
-      const job={cancel(){const e=new Error('Analysis cancelled.');e.name='AbortError';finish(reject,e);}};
-      const timer=setTimeout(()=>{const e=new Error('Metadata parsing exceeded the 12-second limit.');e.code='parse_error';finish(reject,e);},12000);ui.job=job;
-      worker.onmessage=e=>{if(e.data?.ok)finish(resolve,e.data.result);else{const error=new Error(e.data?.message||'Metadata could not be read.');error.code=e.data?.code||'parse_error';finish(reject,error);}};
-      worker.onerror=async e=>{e.preventDefault?.();if(done)return;worker.terminate();clearTimeout(timer);done=true;if(ui.job===job)ui.job=null;try{if(token!==ui.token)throw Object.assign(new Error('Cancelled'),{name:'AbortError'});log('Worker startup failed; using the local parser.','warning');const fresh=buffer.byteLength?buffer:await file.arrayBuffer();resolve(await MetadataParser.parse(fresh));}catch(error){reject(error);}};
-      try{worker.postMessage({buffer},[buffer]);}catch(e){finish(reject,e);}
+
+  const TILE=256,D2R=Math.PI/180,MAX_LAT=85.05112878;
+  const mercX=lng=>(lng+180)/360*TILE;
+  const mercY=lat=>{const s=Math.sin(Math.max(-MAX_LAT,Math.min(MAX_LAT,lat))*D2R);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*TILE;};
+
+  const MINOR_WAYS=new Set(['footway','path','cycleway','steps','pedestrian']);
+  const MAJOR_WAYS=new Set(['primary','secondary','tertiary','trunk']);
+  const INDOOR_WAYS=new Set(['corridor','elevator','bus_stop']);
+  const BASE_KINDS=['green','parking','paved','water','building'];
+  const LOCAL_MIN_ZOOM=10.5,POINT_MIN_ZOOM=17.5,GRID=10;
+const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.05,.1,.25,.5,1,2,5,10,15,30,45,60,90];
+
+  const palette={
+    land:'#281321',landStroke:'#6e354f',
+    casing:'#100a0f',
+    labelHalo:'#170b12',labelDefault:'#d1a0b5',labelRoad:'#cf89a4',labelPlace:'#f0bed4',labelMinor:'#9b5f7d',symbol:'#f17ba3'
+  };
+
+  /** Static drawing rules for one group of features. Roads get their width per frame from zoom. */
+  function specFor(kind,highway,highlight){
+    switch(kind){
+      case 'green':return {order:0,minZoom:12.5,stroke:'#39222c',weight:.3,fill:'#21161c',fillOpacity:.95,opacity:1};
+      case 'parking':return {order:1,minZoom:14.5,stroke:'#57303e',weight:.6,fill:'#1b141a',fillOpacity:.95,opacity:1};
+      case 'paved':return {order:2,minZoom:14.5,stroke:'#4c2938',weight:.5,fill:'#251820',fillOpacity:.9,opacity:1};
+      case 'water':return {order:3,minZoom:11,stroke:'#644151',weight:.8,fill:'#211722',fillOpacity:.95,opacity:1};
+      case 'building':return {order:4,minZoom:13.5,strokeMinZoom:15.5,stroke:highlight?'#d65b80':'#74404f',weight:highlight?1.3:.7,fill:highlight?'#4e2235':'#33212b',fillOpacity:.95,opacity:1};
+      case 'barrier':return {order:6,minZoom:17,stroke:'#b65f75',weight:.8,opacity:.55,dash:[2,3]};
+      case 'road':{
+        const major=MAJOR_WAYS.has(highway),minor=MINOR_WAYS.has(highway),indoor=INDOOR_WAYS.has(highway);
+        return {order:7,road:true,major,minor,casing:!minor,minZoom:major?10.5:minor?15.5:indoor?17:13,stroke:major?'#ad6275':minor?'#663c4a':'#734454',base:major?5.5:minor?.8:2.8,opacity:minor?.65:1,dash:minor?[2,3]:null};
+      }
+      default:return null;
+    }
+  }
+  /** Road weight in CSS pixels, matching the v2 style: scales with zoom between 0.25x and 2.8x. */
+  function roadWeight(spec,zoom){return Math.max(.65,spec.base*Math.pow(2,Math.max(-2,Math.min(1.5,zoom-17))));}
+
+  const pointStyle=kind=>({radius:kind==='tree'?2.8:1.5,stroke:'#ab5b7c',fill:'#48253a',weight:.5,fillOpacity:.7});
+
+  function labelFont(kind){return kind==='parking'||kind==='bus'?{size:9,color:palette.labelMinor}:kind==='poi'||kind==='place'?{size:11,color:palette.labelPlace}:kind==='road'?{size:10,color:palette.labelRoad,spacing:.4}:{size:10,color:palette.labelDefault};}
+
+  function inBounds(lat,lng,b){return lng>=b[0]&&lng<=b[2]&&lat>=b[1]&&lat<=b[3];}
+
+  /** Pure projection helper, exported so tests can compare it with Leaflet's own projection. */
+  function containerPoint(lat,lng,zoom,minX,minY){const s=Math.pow(2,zoom);return {x:mercX(lng)*s-minX,y:mercY(lat)*s-minY};}
+
+  function createLayer(L,options){
+    const Layer=L.Layer.extend({
+      options:{pane:'traceBase'},
+      initialize(opts){
+        L.setOptions(this,{pane:opts.pane||'traceBase'});
+        this._cfg=opts;this._local=null;this._labels=[];this._labelState=new Map();this._lastSelect=-1e9;this._lastKey='';this._lastDraw=0;
+        this.stats={draws:0,lastMs:0,avgMs:0,maxMs:0,localReady:false};
+        this._buildWorld(opts.world);
+      },
+      onAdd(map){
+        this._map=map;
+        const pane=map.getPane(this.options.pane);
+        const canvas=this._canvas=L.DomUtil.create('canvas','trace-canvas leaflet-zoom-animated',pane);
+        canvas.setAttribute('aria-hidden','true');
+        this._ctx=canvas.getContext('2d',{alpha:true});
+        this._resize();this.redraw(true);
+      },
+      onRemove(){L.DomUtil.remove(this._canvas);this._canvas=null;this._ctx=null;cancelAnimationFrame(this._raf);},
+      getEvents(){return {viewreset:this._onView,move:this._onMove,zoom:this._onMove,moveend:this._onSettle,zoomend:this._onSettle,zoomanim:this._onZoomAnim,resize:this._onResize};},
+      _onView(){this.redraw(true);},
+      _onMove(){this.redraw(false);},
+      _onSettle(){this._selectLabels(true);this.redraw(true);},
+      _onResize(){this._resize();this.redraw(true);},
+      // Same transform Leaflet applies to its own renderers during an animated zoom.
+      _onZoomAnim(e){
+        if(!this._canvas||!this._center)return;
+        const map=this._map,scale=map.getZoomScale(e.zoom,this._zoomAtDraw),viewHalf=map.getSize().multiplyBy(.5),
+          current=map.project(this._center,e.zoom),offset=viewHalf.multiplyBy(-scale).add(current).subtract(map._getNewPixelOrigin(e.center,e.zoom));
+        L.DomUtil.setTransform(this._canvas,offset,scale);
+      },
+      _resize(){
+        if(!this._canvas)return;
+        const size=this._map.getSize(),dpr=Math.min(2,(typeof devicePixelRatio==='number'&&devicePixelRatio)||1);
+        this._dpr=dpr;this._w=size.x;this._h=size.y;
+        this._canvas.width=Math.max(1,Math.round(size.x*dpr));this._canvas.height=Math.max(1,Math.round(size.y*dpr));
+        this._canvas.style.width=size.x+'px';this._canvas.style.height=size.y+'px';
+        this._lastKey='';
+      },
+
+      // ---- geometry -------------------------------------------------------------
+      _buildWorld(world){
+        const rings=[];
+        const add=ring=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const xs=new Float64Array(ring.length),ys=new Float64Array(ring.length);
+          for(let i=0;i<ring.length;i++){const x=mercX(ring[i][0]),y=mercY(ring[i][1]);xs[i]=x;ys[i]=y;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+          rings.push({xs,ys,x0,y0,x1,y1});};
+        for(const f of (world&&world.features)||[]){const g=f.geometry;if(!g)continue;
+          if(g.type==='Polygon')g.coordinates.forEach(add);
+          else if(g.type==='MultiPolygon')g.coordinates.forEach(p=>p.forEach(add));}
+        this._worldRings=rings;
+      },
+      /** Builds the detailed local geometry once. Safe to call repeatedly. Returns the build time in ms. */
+      prepare(){
+        if(this._local)return 0;
+        const data=this._cfg.local,bounds=this._cfg.bounds;if(!data||!bounds)return 0;
+        const t0=performance.now();
+        const ox=mercX((bounds[0]+bounds[2])/2),oy=mercY((bounds[1]+bounds[3])/2);
+        const gx0=mercX(bounds[0])-ox,gx1=mercX(bounds[2])-ox,gy0=mercY(bounds[3])-oy,gy1=mercY(bounds[1])-oy;
+        const cw=(gx1-gx0)/GRID,ch=(gy1-gy0)/GRID;
+        const groups=new Map(),cellPoints=new Map(),points=[];
+        const cellOf=(x,y)=>[Math.max(0,Math.min(GRID-1,Math.floor((x-gx0)/cw))),Math.max(0,Math.min(GRID-1,Math.floor((y-gy0)/ch)))];
+        const emit=(path,coords,close)=>{for(let i=0;i<coords.length;i++){const x=mercX(coords[i][0])-ox,y=mercY(coords[i][1])-oy;if(i)path.lineTo(x,y);else path.moveTo(x,y);}if(close)path.closePath();};
+        for(const f of data.features){
+          const p=f.properties,g=f.geometry;if(!g)continue;
+          if(g.type==='Point'){
+            const x=mercX(g.coordinates[0])-ox,y=mercY(g.coordinates[1])-oy,[ci,cj]=cellOf(x,y),idx=cj*GRID+ci;
+            const pt={kind:p.kind,x,y};points.push(pt);let list=cellPoints.get(idx);if(!list)cellPoints.set(idx,list=[]);list.push(pt);continue;
+          }
+          const spec=specFor(p.kind,p.highway,p.highlight);if(!spec)continue;
+          const key=p.kind+'|'+(p.highway||'')+'|'+(p.highlight?1:0);
+          let group=groups.get(key);if(!group){group={spec,kind:p.kind,full:new Path2D(),cells:new Map()};groups.set(key,group);}
+          const lines=g.type==='LineString'?[g.coordinates]:g.type==='Polygon'?g.coordinates:g.type==='MultiLineString'?g.coordinates:g.type==='MultiPolygon'?g.coordinates.flat():[];
+          const close=g.type==='Polygon'||g.type==='MultiPolygon';
+          let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
+          for(const line of lines)for(const c of line){const x=mercX(c[0])-ox,y=mercY(c[1])-oy;if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y;}
+          const [i0,j0]=cellOf(bx0,by0),[i1,j1]=cellOf(bx1,by1);
+          for(const line of lines)emit(group.full,line,close);
+          for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){
+            const idx=j*GRID+i;let path=group.cells.get(idx);if(!path)group.cells.set(idx,path=new Path2D());
+            for(const line of lines)emit(path,line,close);
+          }
+        }
+        const list=[...groups.values()];
+        this._local={ox,oy,gx0,gy0,cw,ch,bounds,points,cellPoints,
+          base:list.filter(g=>BASE_KINDS.includes(g.kind)).sort((a,b)=>a.spec.order-b.spec.order),
+          casings:list.filter(g=>g.spec.road&&g.spec.casing),
+          // Thin roads first so wider roads draw over their junctions.
+          roads:list.filter(g=>g.spec.road).sort((a,b)=>Number(a.spec.major)-Number(b.spec.major)),barriers:list.filter(g=>g.kind==='barrier')};
+        this.stats.localReady=true;
+        const ms=performance.now()-t0;this.stats.buildMs=ms;
+        this.redraw(true);
+        return ms;
+      },
+      setLabels(local,world){this._cfg.localLabels=local;this._cfg.worldLabels=world;},
+
+      // ---- labels ---------------------------------------------------------------
+      _selectLabels(force){
+        const map=this._map;if(!map||!this._canvas)return;
+        const now=performance.now();if(!force&&now-this._lastSelect<250)return;this._lastSelect=now;
+        const z=map.getZoom(),c=map.getCenter(),local=z>=14&&this._local&&inBounds(c.lat,c.lng,this._cfg.bounds);
+        const source=(local?this._cfg.localLabels:this._cfg.worldLabels)||[];
+        const project=p=>{const lon=local?p.lon:p.lon+360*Math.round((c.lng-p.lon)/360);return map.latLngToContainerPoint([p.lat,lon]);};
+        const picked=this._cfg.selectLabels(source,z,project,map.getSize(),{});
+        const keep=new Set();
+        for(const p of picked){
+          const key=p.kind+'|'+p.text+'|'+p.lat.toFixed(5)+'|'+p.lon.toFixed(5);keep.add(key);
+          const e=this._labelState.get(key);if(e){e.target=1;e.label=p;e.local=local;}else this._labelState.set(key,{label:p,alpha:0,target:1,local});
+        }
+        for(const [key,e] of this._labelState)if(!keep.has(key))e.target=0;
+      },
+      _drawLabels(ctx,dt,center){
+        const map=this._map;let animating=false;
+        for(const [key,e] of this._labelState){
+          if(e.alpha<e.target){e.alpha=Math.min(e.target,e.alpha+dt/160);animating=true;}
+          else if(e.alpha>e.target){e.alpha=Math.max(e.target,e.alpha-dt/160);animating=true;}
+          if(e.alpha<=0&&e.target===0){this._labelState.delete(key);continue;}
+          const p=e.label,lon=e.local?p.lon:p.lon+360*Math.round((center.lng-p.lon)/360),pt=map.latLngToContainerPoint([p.lat,lon]);
+          if(pt.x<-120||pt.y<-30||pt.x>this._w+120||pt.y>this._h+30)continue;
+          const f=labelFont(p.kind);
+          ctx.save();ctx.globalAlpha=e.alpha;ctx.translate(pt.x,pt.y);if(p.angle)ctx.rotate(p.angle*D2R);
+          ctx.font=f.size+'px "Segoe UI Variable Text","Segoe UI",system-ui,Arial,sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';
+          if('letterSpacing' in ctx)ctx.letterSpacing=(f.spacing||0)+'px';
+          const symbol=p.symbol?p.symbol+' ':'',wSym=symbol?ctx.measureText(symbol).width:0,wText=ctx.measureText(p.text).width,x0=-(wSym+wText)/2;
+          ctx.lineJoin='round';ctx.lineWidth=3;ctx.strokeStyle=palette.labelHalo;
+          if(symbol)ctx.strokeText(symbol,x0,0);ctx.strokeText(p.text,x0+wSym,0);
+          if(symbol){ctx.fillStyle=palette.symbol;ctx.fillText(symbol,x0,0);}
+          ctx.fillStyle=f.color;ctx.fillText(p.text,x0+wSym,0);
+          ctx.restore();
+        }
+        return animating;
+      },
+
+      // ---- drawing --------------------------------------------------------------
+      redraw(force){
+        if(!this._canvas||this._map._animatingZoom)return;
+        const map=this._map,z=map.getZoom(),c=map.getCenter(),size=map.getSize();
+        if(size.x!==this._w||size.y!==this._h)this._resize();
+        const key=z+'|'+c.lat+'|'+c.lng+'|'+size.x+'|'+size.y+'|'+(this._local?1:0);
+        if(!force&&key===this._lastKey)return;
+        this._lastKey=key;
+        const t0=performance.now();
+        this._center=c;this._zoomAtDraw=z;
+        L.DomUtil.setPosition(this._canvas,map.containerPointToLayerPoint([0,0]));
+        const ctx=this._ctx,dpr=this._dpr,s=Math.pow(2,z),min=map.getPixelBounds().min;
+        ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,this._w,this._h);
+        this._drawWorld(ctx,s,min);
+        this._drawGraticule(ctx,s,min,z);
+        if(this._local&&z>=LOCAL_MIN_ZOOM)this._drawLocal(ctx,s,min,z,dpr);
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        this._selectLabels(false);
+        const dt=Math.min(60,t0-(this._lastDraw||t0));this._lastDraw=t0;
+        const animating=this._drawLabels(ctx,dt||16,c);
+        const ms=performance.now()-t0,st=this.stats;st.draws++;st.lastMs=ms;st.avgMs=st.avgMs?st.avgMs*.9+ms*.1:ms;if(ms>st.maxMs)st.maxMs=ms;
+        if(animating&&!this._raf)this._raf=requestAnimationFrame(()=>{this._raf=0;this.redraw(true);});
+      },
+      _drawWorld(ctx,s,min){
+        const W=TILE*s,rings=this._worldRings;if(!rings||!rings.length)return;
+        const kFrom=Math.floor(min.x/W),kTo=Math.floor((min.x+this._w)/W);
+        ctx.beginPath();
+        for(let k=kFrom;k<=kTo;k++){
+          const ox=k*W-min.x,oy=-min.y;
+          for(const r of rings){
+            const px0=r.x0*s+ox,px1=r.x1*s+ox,py0=r.y0*s+oy,py1=r.y1*s+oy;
+            if(px1<-2||py1<-2||px0>this._w+2||py0>this._h+2)continue;
+            if(px1-px0<.35&&py1-py0<.35)continue;
+            const xs=r.xs,ys=r.ys;ctx.moveTo(xs[0]*s+ox,ys[0]*s+oy);
+            for(let i=1;i<xs.length;i++)ctx.lineTo(xs[i]*s+ox,ys[i]*s+oy);
+            ctx.closePath();
+          }
+        }
+        ctx.globalAlpha=.95;ctx.fillStyle=palette.land;ctx.fill('evenodd');
+        ctx.globalAlpha=1;ctx.lineWidth=.7;ctx.strokeStyle=palette.landStroke;ctx.lineJoin='round';ctx.stroke();
+      },
+      /**
+       * Latitude/longitude grid. It is exact geometry, drawn from the camera alone, and it gives the descent
+       * a sense of scale in the zoom range where neither the world outline nor the street data has detail.
+       */
+      _drawGraticule(ctx,s,min,z){
+        if(z>=GRATICULE_FADE_END)return;
+        const fade=Math.min(1,(GRATICULE_FADE_END-z)/2.5),W=TILE*s,w=this._w,h=this._h;
+        const step=GRATICULE_STEPS.find(v=>v>=360/W*80)||90;
+        const lonA=min.x/W*360-180,lonB=(min.x+w)/W*360-180;
+        const latOf=y=>Math.atan(Math.sinh(Math.PI*(1-2*y/W)))/D2R;
+        const latTop=Math.min(MAX_LAT,latOf(min.y)),latBottom=Math.max(-MAX_LAT,latOf(min.y+h));
+        const k0=Math.ceil(lonA/step),k1=Math.floor(lonB/step),j0=Math.ceil(latBottom/step),j1=Math.floor(latTop/step);
+        if(k1-k0>80||j1-j0>80)return;
+        const decimals=step>=1?0:Math.min(6,Math.ceil(-Math.log10(step)));
+        ctx.save();
+        ctx.beginPath();
+        for(let k=k0;k<=k1;k++){const x=Math.round((k*step+180)/360*W-min.x)+.5;ctx.moveTo(x,0);ctx.lineTo(x,h);}
+        for(let j=j0;j<=j1;j++){const y=Math.round(mercY(j*step)*s-min.y)+.5;ctx.moveTo(0,y);ctx.lineTo(w,y);}
+        ctx.lineWidth=1;ctx.strokeStyle='rgba(234,102,141,'+(.085*fade).toFixed(3)+')';ctx.stroke();
+        ctx.font='10px "Bahnschrift","Cascadia Mono",Consolas,ui-monospace,monospace';ctx.fillStyle='rgba(200,130,160,'+(.75*fade).toFixed(3)+')';ctx.textBaseline='bottom';
+        ctx.textAlign='left';
+        for(let j=j0;j<=j1;j++){const lat=j*step,y=Math.round(mercY(lat)*s-min.y)-3;if(y<18||y>h-8)continue;ctx.fillText(Math.abs(lat).toFixed(decimals)+'°'+(lat<0?'S':lat>0?'N':''),10,y);}
+        for(let k=k0;k<=k1;k++){const lon=((k*step+180)%360+360)%360-180,x=Math.round((k*step+180)/360*W-min.x)+4;if(x<56||x>w-70)continue;ctx.fillText(Math.abs(lon).toFixed(decimals)+'°'+(lon<0?'W':lon>0?'E':''),x,h*.3);}
+        ctx.restore();
+      },
+      _visiblePath(group,cells,full){
+        if(full)return group.full;
+        const out=new Path2D();let any=false;
+        for(const idx of cells){const p=group.cells.get(idx);if(p){out.addPath(p);any=true;}}
+        return any?out:null;
+      },
+      _drawLocal(ctx,s,min,z,dpr){
+        const L0=this._local;
+        // Viewport in the layer's relative unit space; skip entirely if it cannot overlap the dataset.
+        const ux0=min.x/s-L0.ox,ux1=(min.x+this._w)/s-L0.ox,uy0=min.y/s-L0.oy,uy1=(min.y+this._h)/s-L0.oy;
+        const gx1=L0.gx0+L0.cw*GRID,gy1=L0.gy0+L0.ch*GRID,pad=Math.max(L0.cw,L0.ch)*.6;
+        // Features can run slightly beyond the nominal bounds, so allow a margin before skipping.
+        if(ux1<L0.gx0-pad||ux0>gx1+pad||uy1<L0.gy0-pad||uy0>gy1+pad)return;
+        const i0=Math.max(0,Math.floor((ux0-L0.gx0)/L0.cw)),i1=Math.min(GRID-1,Math.floor((ux1-L0.gx0)/L0.cw)),
+          j0=Math.max(0,Math.floor((uy0-L0.gy0)/L0.ch)),j1=Math.min(GRID-1,Math.floor((uy1-L0.gy0)/L0.ch));
+        const cells=[];for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++)cells.push(j*GRID+i);
+        const full=cells.length>=GRID*GRID*.55;
+        ctx.setTransform(dpr*s,0,0,dpr*s,dpr*(L0.ox*s-min.x),dpr*(L0.oy*s-min.y));
+        ctx.lineJoin='round';ctx.lineCap='round';
+        for(const g of L0.base){
+          const sp=g.spec;if(z<sp.minZoom)continue;const path=this._visiblePath(g,cells,full);if(!path)continue;
+          ctx.globalAlpha=sp.fillOpacity;ctx.fillStyle=sp.fill;ctx.fill(path,'evenodd');
+          if(sp.strokeMinZoom===undefined||z>=sp.strokeMinZoom){ctx.globalAlpha=sp.opacity;ctx.lineWidth=sp.weight/s;ctx.strokeStyle=sp.stroke;ctx.stroke(path);}
+        }
+        ctx.setLineDash([]);
+        for(const g of L0.casings){
+          const sp=g.spec;if(z<sp.minZoom)continue;const path=this._visiblePath(g,cells,full);if(!path)continue;
+          ctx.globalAlpha=1;ctx.strokeStyle=palette.casing;ctx.lineWidth=(roadWeight(sp,z)+2.8)/s;ctx.stroke(path);
+        }
+        for(const g of L0.roads){
+          const sp=g.spec;if(z<sp.minZoom)continue;const path=this._visiblePath(g,cells,full);if(!path)continue;
+          ctx.globalAlpha=sp.opacity;ctx.strokeStyle=sp.stroke;ctx.lineWidth=roadWeight(sp,z)/s;
+          ctx.setLineDash(sp.dash?sp.dash.map(d=>d/s):[]);ctx.stroke(path);
+        }
+        ctx.setLineDash([]);
+        for(const g of L0.barriers){
+          const sp=g.spec;if(z<sp.minZoom)continue;const path=this._visiblePath(g,cells,full);if(!path)continue;
+          ctx.globalAlpha=sp.opacity;ctx.strokeStyle=sp.stroke;ctx.lineWidth=sp.weight/s;ctx.setLineDash(sp.dash.map(d=>d/s));ctx.stroke(path);
+        }
+        ctx.setLineDash([]);ctx.globalAlpha=1;
+        if(z>=POINT_MIN_ZOOM){
+          for(const kind of ['tree','furniture','poi','bus']){
+            const st=pointStyle(kind);ctx.beginPath();let n=0;
+            for(const idx of cells){const list=L0.cellPoints.get(idx);if(!list)continue;for(const p of list){if(p.kind!==kind)continue;ctx.moveTo(p.x+st.radius/s,p.y);ctx.arc(p.x,p.y,st.radius/s,0,Math.PI*2);n++;}}
+            if(!n)continue;
+            ctx.globalAlpha=st.fillOpacity;ctx.fillStyle=st.fill;ctx.fill();ctx.globalAlpha=1;ctx.lineWidth=st.weight/s;ctx.strokeStyle=st.stroke;ctx.stroke();
+          }
+        }
+        ctx.globalAlpha=1;
+      }
+    });
+    return new Layer(options);
+  }
+
+  return {create:createLayer,mercX,mercY,specFor,roadWeight,containerPoint,LOCAL_MIN_ZOOM,POINT_MIN_ZOOM,MAX_LAT};
+});
+</script><script>/*
+ * Map director: owns every deliberate camera move.
+ *
+ * It uses the real Leaflet camera (flyTo / setView) and its real completion
+ * events. It never scales a screenshot. Each move gets an id; a completion event
+ * only counts if it belongs to the move that is still current and the camera is
+ * actually where that move was going, so a stale or unrelated `moveend` (resize,
+ * an earlier cancelled flight) cannot be mistaken for arrival.
+ *
+ * The director only moves the camera. The coordinates it is given are display
+ * targets; the original report.location is never read back from, or replaced by,
+ * anything here. Longitude is unwrapped to the nearest world copy only for the
+ * flight path, then normalised to the true longitude on arrival.
+ */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.MapDirector=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+
+  const MAX_MERCATOR_LAT=85.05112878;
+  const STREET_ZOOM=18,OVERVIEW_ZOOM=5,WIDE_ZOOM=3;
+  const unwrapLongitude=(lng,centerLng)=>lng+360*Math.round((centerLng-lng)/360);
+
+  /** What the map can honestly show for a coordinate. Pure, so it can be tested without a map. */
+  function classify(location,bounds){
+    if(!location||!Number.isFinite(location.latitude)||!Number.isFinite(location.longitude))return {kind:'none'};
+    if(Math.abs(location.latitude)>MAX_MERCATOR_LAT)return {kind:'polar'};
+    // Without bundled street geometry nothing is regional: the exact point stays on the world overview.
+    const regional=Array.isArray(bounds)&&location.longitude>=bounds[0]&&location.longitude<=bounds[2]&&location.latitude>=bounds[1]&&location.latitude<=bounds[3];
+    return regional?{kind:'regional',zoom:STREET_ZOOM}:{kind:'overview',zoom:OVERVIEW_ZOOM};
+  }
+
+  function create({L,map,bounds,onInterrupt}){
+    let flight=null,sequence=0;
+    const container=map.getContainer();
+
+    function freeze(){map.setView(map.getCenter(),map.getZoom(),{animate:false});}
+
+    function settleFlight(f,result){
+      if(f.done)return false;
+      f.done=true;map.off('moveend',f.onEnd);if(flight===f)flight=null;f.resolve(result);return true;
+    }
+
+    /** Stops the current move where it is. Resolves its promise with `why`. */
+    function cancel(why='cancelled'){
+      const f=flight;if(!f)return false;
+      f.done=true;map.off('moveend',f.onEnd);flight=null;
+      freeze();
+      f.resolve(why);return true;
+    }
+
+    /** Moves the camera. Resolves 'arrived', or 'cancelled' / 'interrupted' / 'replaced' if stopped first. */
+    function move(latlng,zoom,{animate=true,duration=2.9,trueLongitude,keepWorldCopy=false}={}){
+      if(flight)cancel('replaced');
+      return new Promise(resolve=>{
+        const id=++sequence,target=L.latLng(latlng.lat,latlng.lng),f={id,done:false,resolve,target,zoom};
+        const tolerance=1e-4;
+        f.onEnd=()=>{
+          if(flight!==f||f.done)return;
+          const c=map.getCenter();
+          if(Math.abs(map.getZoom()-zoom)>tolerance)return;
+          // Leaflet quantises the centre to whole pixels once the person has dragged the map, so "arrived" means
+          // within a pixel and a half at the target zoom, not equal to the last digit.
+          const degPerPixel=360/(256*Math.pow(2,zoom)),lngSlack=1.5*degPerPixel,latSlack=1.5*degPerPixel*Math.max(Math.cos(target.lat*Math.PI/180),.05);
+          if(Math.abs(c.lat-target.lat)>latSlack||Math.abs(c.lng-target.lng)>lngSlack)return;
+          const finalLng=!keepWorldCopy&&trueLongitude!==undefined?trueLongitude:target.lng;
+          if(Math.abs(c.lat-target.lat)>1e-9||Math.abs(c.lng-finalLng)>1e-9){
+            // `reset` matters: at an unchanged zoom Leaflet would otherwise pan by whole pixels and leave the gap.
+            // Close the last sub-pixel gap, and normalise a longitude that was unwrapped for the flight (same picture on
+            // another world copy), so later panning, Recenter and the readout all use the true coordinate.
+            f.done=true;map.off('moveend',f.onEnd);if(flight===f)flight=null;
+            map.setView([target.lat,finalLng],zoom,{animate:false,reset:true});resolve('arrived');return;
+          }
+          settleFlight(f,'arrived');
+        };
+        flight=f;map.on('moveend',f.onEnd);
+        if(!animate||duration<=0)map.setView(target,zoom,{animate:false});
+        else map.flyTo(target,zoom,{animate:true,duration});
+      });
+    }
+
+    function fly(location,{animate=true,duration=2.9}={}){
+      const plan=classify(location,bounds);
+      if(plan.kind==='none'||plan.kind==='polar')return Promise.resolve('skipped');
+      const c=map.getCenter(),lng=unwrapLongitude(location.longitude,c.lng);
+      return move({lat:location.latitude,lng},plan.zoom,{animate,duration,trueLongitude:location.longitude});
+    }
+
+    /** Immediate placement at the final view (skip, reduced motion, renderer fallback). */
+    function jump(location){
+      const plan=classify(location,bounds);
+      if(flight)cancel('replaced');
+      if(plan.kind==='none'||plan.kind==='polar')return plan;
+      map.setView([location.latitude,location.longitude],plan.zoom,{animate:false,reset:true});
+      return plan;
+    }
+
+    /** A short, quiet move back to a wide view, used before a new descent. */
+    function widen({animate=true,duration=1.1}={}){
+      const c=map.getCenter();if(map.getZoom()<=WIDE_ZOOM+.5)return Promise.resolve('arrived');
+      return move({lat:c.lat,lng:c.lng},WIDE_ZOOM,{animate,duration});
+    }
+
+    /** Ends any move in progress and leaves the camera on the wide view if it is closer in than that. Used when
+     *  nothing can be plotted, so a result without a location never ends mid-zoom or stuck on an earlier street view. */
+    function rest(){
+      if(flight)cancel('replaced');
+      if(map.getZoom()>WIDE_ZOOM+.5)map.setView(map.getCenter(),WIDE_ZOOM,{animate:false,reset:true});
+    }
+
+    function recenter(location,{animate=true}={}){
+      const plan=classify(location,bounds);if(plan.kind==='none'||plan.kind==='polar')return Promise.resolve('skipped');
+      const c=map.getCenter(),lng=unwrapLongitude(location.longitude,c.lng);
+      return move({lat:location.latitude,lng},plan.zoom,{animate,duration:.9,trueLongitude:location.longitude});
+    }
+
+    // Any deliberate manual map input hands control back to the person.
+    const interrupt=()=>{if(cancel('interrupted')&&typeof onInterrupt==='function')onInterrupt();};
+    for(const type of ['pointerdown','wheel','touchstart','dblclick'])container.addEventListener(type,interrupt,{passive:true,capture:true});
+    container.addEventListener('keydown',e=>{if(/^(Arrow|\+|-|=|PageUp|PageDown|Home|End)/.test(e.key))interrupt();},true);
+
+    return {
+      fly,jump,widen,rest,recenter,cancel,classify:loc=>classify(loc,bounds),
+      get flying(){return !!flight;},
+      get flightId(){return flight?flight.id:0;},
+      dispose(){cancel('cancelled');}
+    };
+  }
+
+  return {create,classify,unwrapLongitude,MAX_MERCATOR_LAT,STREET_ZOOM,OVERVIEW_ZOOM,WIDE_ZOOM};
+});
+</script><script>/*
+ * Presentation controller.
+ *
+ * Sequences the visual and audible presentation of one analysis run. It owns no
+ * DOM, map or audio code: those are injected as hooks. It is deliberately kept
+ * separate from analysis state. The analysis pipeline reports facts to it
+ * (file accepted, report ready, failure) through `session.signal`, and the
+ * controller decides only *when* those facts are shown.
+ *
+ * States: idle, acquire, scan, reveal, resolve, fly, lock, settled, cancelled, error.
+ *
+ * Every session carries the analysis generation (`gen`). All timers, pending
+ * waits, signals and the map flight hook are scoped to one session, and a
+ * single cancel() or skip() stops all of them. Signals from a dead session are
+ * ignored, so a late parser result or a late map completion cannot reveal an
+ * old result.
+ */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.PresentationController=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+
+  const STATES=Object.freeze(['idle','acquire','scan','reveal','resolve','fly','lock','settled','cancelled','error']);
+
+  // Beat durations in milliseconds. These are presentation targets, not measured
+  // processing times. `full` sums to 6.2 s: 0.3 + 0.9 + 1.0 + 0.6 + 2.9 + 0.5.
+  const PROFILES=Object.freeze({
+    full:Object.freeze({name:'full',acquire:300,scan:900,reveal:1000,resolve:600,fly:2900,lock:500,animateCamera:true,theatrics:true}),
+    fast:Object.freeze({name:'fast',acquire:140,scan:420,reveal:450,resolve:260,fly:1300,lock:260,animateCamera:true,theatrics:true}),
+    reduced:Object.freeze({name:'reduced',acquire:90,scan:140,reveal:220,resolve:140,fly:0,lock:200,animateCamera:false,theatrics:false})
+  });
+
+  const CANCEL={kind:'cancel'},SKIP={kind:'skip'};
+  const FLIGHT_GRACE_MS=2500;
+
+  function deferred(){
+    const d={settled:false,value:undefined};
+    d.promise=new Promise((resolve,reject)=>{d.resolve=v=>{if(!d.settled){d.settled=true;d.value=v;resolve(v);}};d.reject=e=>{if(!d.settled){d.settled=true;reject(e);}};});
+    d.promise.catch(()=>{}); // a rejection nobody is waiting on yet is not an error
+    return d;
+  }
+
+  function create(options={}){
+    const hooks=options.hooks||{};
+    const timers=options.timers||{setTimeout:(fn,ms)=>globalThis.setTimeout(fn,ms),clearTimeout:id=>globalThis.clearTimeout(id),now:()=>Date.now()};
+    const getIntensity=typeof options.intensity==='function'?options.intensity:()=> 'full';
+    const listeners=new Set();
+    let current=null,state='idle',sequence=0;
+
+    function report(error){try{(options.onError||(e=>{if(typeof console!=='undefined')console.error(e);}))(error);}catch{}}
+    function emit(event){for(const fn of [...listeners]){try{fn(event);}catch(e){report(e);}}}
+    function call(name,...args){const fn=hooks[name];if(typeof fn!=='function')return undefined;try{return fn(...args);}catch(e){report(e);return undefined;}}
+
+    function context(session){
+      return {
+        id:session.id,gen:session.gen,profile:session.profile,intensity:session.profile.name,
+        get state(){return session.state;},get report(){return session.report;},get error(){return session.error;},
+        get skipped(){return session.skipped;},replay:session.replay,
+        durations:session.profile,startedAt:session.startedAt,
+        alive:()=>!session.dead&&session===current
+      };
+    }
+
+    function setState(session,next,extra){
+      if(session!==current)return false;
+      const prev=state;state=next;session.state=next;
+      emit({type:'state',state:next,prev,gen:session.gen,id:session.id,...extra});
+      return true;
+    }
+
+    function enter(session,next,extra){
+      if(session.dead||session!==current)return false;
+      setState(session,next,extra);
+      call('enter',next,context(session));
+      return !session.dead&&session===current;
+    }
+
+    function clearTimers(session){for(const id of session.timers)timers.clearTimeout(id);session.timers.clear();}
+    function dispose(session,reason){if(session.disposed)return;session.disposed=true;clearTimers(session);call('dispose',context(session),reason);}
+
+    // A wait that any interruption (cancel, skip, failure) rejects immediately.
+    function wait(session,promise){return Promise.race([promise,session.cancel.promise,session.skip.promise,session.fail.promise]);}
+    // A wait that only cancel and failure can interrupt (used after skip).
+    function waitFinal(session,promise){return Promise.race([promise,session.cancel.promise,session.fail.promise]);}
+    function sleep(session,ms){
+      if(!(ms>0))return wait(session,Promise.resolve());
+      const p=new Promise(resolve=>{const id=timers.setTimeout(()=>{session.timers.delete(id);resolve();},ms);session.timers.add(id);});
+      return wait(session,p);
+    }
+
+    async function flight(session){
+      const T=session.profile;let watchdog;
+      const timeout=new Promise(resolve=>{watchdog=timers.setTimeout(()=>{session.timers.delete(watchdog);resolve('timeout');},T.fly+FLIGHT_GRACE_MS);session.timers.add(watchdog);});
+      let work;
+      try{work=Promise.resolve(call('fly',context(session)));}catch(e){report(e);work=Promise.resolve('error');}
+      try{return await wait(session,Promise.race([work.catch(e=>{report(e);return 'error';}),timeout]));}
+      finally{timers.clearTimeout(watchdog);session.timers.delete(watchdog);}
+    }
+
+    function settle(session,extra){
+      if(session.dead||session!==current)return;
+      enter(session,'settled',{report:session.report,...extra});
+      dispose(session,'settled');
+      session.done.resolve(session.state);
+    }
+
+    function failed(session,error){
+      if(session.dead||session!==current)return;
+      session.error=error;clearTimers(session);dispose(session,'error');
+      enter(session,'error',{error});
+      session.done.resolve('error');
+    }
+
+    // After skip: apply the final state immediately, or as soon as the report exists.
+    async function finalize(session){
+      try{
+        const report=session.report||await waitFinal(session,session.gates.report.promise);
+        if(session.dead||session!==current)return;
+        session.report=report;clearTimers(session);dispose(session,'skip');
+        call('finish',context(session));
+        if(session.dead||session!==current)return;
+        setState(session,'settled',{report,skipped:true});
+        session.done.resolve('settled');
+      }catch(signal){route(session,signal);}
+    }
+
+    function route(session,signal){
+      if(signal===CANCEL||session.dead)return;
+      if(signal===SKIP)return finalize(session);
+      if(signal&&signal.kind==='fail')return failed(session,signal.error);
+      report(signal);failed(session,signal instanceof Error?signal:new Error(String(signal)));
+    }
+
+    async function run(session){
+      const T=session.profile;
+      try{
+        if(!enter(session,'acquire'))return;
+        await Promise.all([sleep(session,T.acquire),wait(session,session.gates.acquired.promise)]);
+        if(!enter(session,'scan'))return;
+        await sleep(session,T.scan);
+        if(!session.gates.report.settled){session.waiting=true;emit({type:'waiting',value:true,gen:session.gen,id:session.id});}
+        const result=await wait(session,session.gates.report.promise);
+        if(session.waiting){session.waiting=false;emit({type:'waiting',value:false,gen:session.gen,id:session.id});}
+        session.report=result;
+        if(!enter(session,'reveal',{report:result}))return;
+        await sleep(session,T.reveal);
+        if(result.status==='located'&&result.location){
+          if(!enter(session,'resolve',{report:result}))return;
+          await sleep(session,T.resolve);
+          const plan=call('plan',context(session));
+          if(plan&&plan.fly===false){settle(session,{camera:'none'});return;}
+          if(!enter(session,'fly',{report:result}))return;
+          const outcome=await flight(session);
+          if(outcome==='timeout'||outcome==='error'){emit({type:'warning',reason:'flight_'+outcome,gen:session.gen,id:session.id});call('recover',context(session),outcome);}
+          if(!enter(session,'lock',{report:result}))return;
+          await sleep(session,T.lock);
+        }
+        settle(session);
+      }catch(signal){route(session,signal);}
+    }
+
+    function startSession(opts={}){
+      if(current&&!current.dead)stop(current,'replaced');
+      const profileName=PROFILES[opts.intensity]?opts.intensity:getIntensity();
+      const profile=PROFILES[profileName]||PROFILES.full;
+      const session={
+        id:++sequence,gen:opts.gen,profile,state:'idle',dead:false,disposed:false,skipped:false,waiting:false,
+        replay:!!opts.report,report:null,error:null,timers:new Set(),startedAt:timers.now(),
+        cancel:deferred(),skip:deferred(),fail:deferred(),done:deferred(),
+        gates:{acquired:deferred(),report:deferred()}
+      };
+      current=session;state='idle';
+      session.signal=Object.freeze({
+        acquired(info){if(!session.dead&&session===current)session.gates.acquired.resolve(info);},
+        report(r){if(!session.dead&&session===current)session.gates.report.resolve(r);},
+        fail(error){if(session.dead||session!==current||session.gates.report.settled)return;session.fail.reject({kind:'fail',error});}
+      });
+      if(opts.report){session.gates.acquired.resolve({replay:true});session.gates.report.resolve(opts.report);}
+      run(session);
+      return session;
+    }
+
+    function stop(session,reason){
+      if(session.dead)return;
+      const wasRunning=!['settled','error','idle','cancelled'].includes(session.state);
+      session.dead=true;
+      clearTimers(session);
+      session.cancel.reject(CANCEL);
+      dispose(session,reason);
+      if(session===current){
+        const prev=state;state=wasRunning?'cancelled':'idle';session.state=state;
+        emit({type:'state',state,prev,gen:session.gen,id:session.id,reason});
+      }
+      session.done.resolve('cancelled');
+    }
+
+    return {
+      start:startSession,
+      /** Stops all work for the current session. Safe to call at any time. */
+      cancel(reason='cancel'){if(current)stop(current,reason);},
+      /** Jump to the final state, or to it as soon as the report exists. */
+      skip(reason='skip'){const s=current;if(!s||s.dead||['settled','error','idle','cancelled'].includes(s.state))return false;if(s.skipped)return true;s.skipped=true;clearTimers(s);s.skip.reject(SKIP);return true;},
+      /** Replays the presentation for an existing report without re-running analysis. */
+      replay(opts={}){return startSession({...opts});},
+      reset(){if(current)stop(current,'reset');state='idle';current=null;emit({type:'state',state:'idle',prev:'idle',reason:'reset'});},
+      on(fn){listeners.add(fn);return()=>listeners.delete(fn);},
+      get state(){return state;},
+      get session(){return current;},
+      get running(){return !!current&&!current.dead&&!['settled','error','idle','cancelled'].includes(current.state);},
+      profile(name){return PROFILES[name]||PROFILES.full;}
+    };
+  }
+
+  return {create,STATES,PROFILES};
+});
+</script><script>/*
+ * Audio engine: original interface sounds synthesised locally with Web Audio.
+ *
+ * - No samples, no network, no third-party assets.
+ * - The AudioContext is only created or resumed by unlock(), which the app calls
+ *   from a user gesture (the Analyze click or the Sound control).
+ * - Every cue is routed through voice -> master gain -> limiter -> output, with
+ *   short attack and release envelopes, so overlapping cues cannot click or clip.
+ * - Every voice is tracked, so stopAll() / stopGeneration() can fade out whatever
+ *   is playing when a new file is chosen, Clear is pressed, sound is muted, the
+ *   run is cancelled or the tab is hidden.
+ * - A blocked, suspended or unsupported context turns every cue into a quiet
+ *   no-op. Nothing here throws into the caller or retries in a loop.
+ */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.AudioEngine=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+
+  const FLOOR=0.0001;
+  const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+  // Perceptual volume curve. The default of 0.7 puts the loudest cue near -13 dBFS and the quietest tick near -28 dBFS.
+  const volumeToGain=v=>Math.pow(clamp(Number.isFinite(v)?v:0,0,1),1.6);
+  const PITCHES=[1760,1976,2349,2637,2093];
+
+  function create(options={}){
+    const Ctor=options.AudioContext||(typeof globalThis!=='undefined'&&(globalThis.AudioContext||globalThis.webkitAudioContext))||null;
+    const injected=options.context||null;
+    const self={
+      supported:!!(injected||Ctor),
+      enabled:options.enabled!==false,
+      volume:clamp(options.volume===undefined?0.7:options.volume,0,1),
+      blocked:false,failed:false
+    };
+    let ctx=injected,master=null,limiter=null,noise=null,tickCount=0;
+    const voices=new Set();
+    // An injected OfflineAudioContext never reports "running" before rendering starts.
+    const assumeRunning=!!options.assumeRunning;
+
+    function ensureGraph(){
+      if(ctx&&master)return true;
+      try{
+        if(!ctx){if(!Ctor){self.supported=false;return false;}ctx=new Ctor({latencyHint:'interactive'});}
+        master=ctx.createGain();master.gain.value=self.enabled?volumeToGain(self.volume):0;
+        limiter=ctx.createDynamicsCompressor();
+        limiter.threshold.value=-8;limiter.knee.value=8;limiter.ratio.value=12;limiter.attack.value=0.003;limiter.release.value=0.2;
+        master.connect(limiter);limiter.connect(ctx.destination);
+        return true;
+      }catch{self.failed=true;self.supported=false;ctx=injected;master=null;return false;}
+    }
+    function playable(){return !!(self.enabled&&ctx&&master&&(assumeRunning||ctx.state==='running'));}
+    function noiseBuffer(){
+      if(noise)return noise;
+      const length=Math.floor(ctx.sampleRate*1.5),buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+      // Deterministic pseudo-random noise: identical output between runs, which keeps tests stable.
+      let seed=0x2f6e2b1;for(let i=0;i<length;i++){seed=(seed*1664525+1013904223)>>>0;data[i]=(seed/0x80000000)-1;}
+      return noise=buffer;
+    }
+
+    // ---- envelope and voice helpers -------------------------------------------------
+    function envelope(param,t,{attack=0.005,peak=0.3,hold=0,release=0.1}){
+      param.cancelScheduledValues(t);
+      param.setValueAtTime(FLOOR,t);
+      param.linearRampToValueAtTime(peak,t+attack);
+      if(hold>0)param.setValueAtTime(peak,t+attack+hold);
+      param.exponentialRampToValueAtTime(FLOOR,t+attack+hold+release);
+      return t+attack+hold+release;
+    }
+    function makeVoice(name,gen,gain){
+      const voice={name,gen,gain,sources:[],ended:false,endTime:0};
+      voice.stop=(fade=0.05)=>{
+        if(voice.ended)return;voice.ended=true;
+        try{
+          const now=ctx.currentTime,g=gain.gain;
+          g.cancelScheduledValues(now);g.setValueAtTime(Math.max(FLOOR,g.value||FLOOR),now);g.exponentialRampToValueAtTime(FLOOR,now+Math.max(0.01,fade));
+          for(const s of voice.sources){try{s.stop(now+Math.max(0.01,fade)+0.02);}catch{}}
+        }catch{}
+      };
+      voices.add(voice);return voice;
+    }
+    function osc(type,freq,t,stop,voice,dest,gainValue=1){
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.value=gainValue;o.connect(g);g.connect(dest);
+      voice.sources.push(o);o.start(t);o.stop(stop);o.onended=()=>{voice.sources=voice.sources.filter(s=>s!==o);try{g.disconnect();}catch{}if(!voice.sources.length){voice.ended=true;try{voice.gain.disconnect();}catch{}voices.delete(voice);}};
+      return {o,g};
+    }
+    function noiseSource(t,stop,voice,dest,{filter='bandpass',freq=1000,q=1,loop=false}={}){
+      const s=ctx.createBufferSource(),f=ctx.createBiquadFilter();s.buffer=noiseBuffer();s.loop=loop;f.type=filter;f.frequency.setValueAtTime(freq,t);f.Q.value=q;s.connect(f);f.connect(dest);
+      voice.sources.push(s);s.start(t);s.stop(stop);s.onended=()=>{voice.sources=voice.sources.filter(x=>x!==s);try{f.disconnect();}catch{}if(!voice.sources.length){voice.ended=true;try{voice.gain.disconnect();}catch{}voices.delete(voice);}};
+      return {s,f};
+    }
+    function begin(name,params){
+      if(!playable())return null;
+      const t=(params.when!==undefined?params.when:ctx.currentTime)+0.005,gain=ctx.createGain();
+      gain.gain.value=1;gain.connect(master);
+      return {t,voice:makeVoice(name,params.gen,gain),gain};
+    }
+
+    // ---- cues -----------------------------------------------------------------------
+    const cues={
+      // Image seats in the scanner: a dry click with a small low thump.
+      intake(params){
+        const c=begin('intake',params);if(!c)return null;const {t,voice,gain}=c;
+        const click=ctx.createGain();click.connect(gain);envelope(click.gain,t,{attack:0.002,peak:0.5,release:0.03});
+        noiseSource(t,t+0.06,voice,click,{filter:'bandpass',freq:2400,q:1.2});
+        const thump=ctx.createGain();thump.connect(gain);envelope(thump.gain,t,{attack:0.003,peak:0.45,release:0.09});
+        const th=osc('sine',150,t,t+0.14,voice,thump);th.o.frequency.exponentialRampToValueAtTime(70,t+0.07);
+        return voice;
+      },
+      // Sparse extraction tick. Pitch cycles through a small set; one tick per revealed field group.
+      tick(params){
+        const c=begin('tick',params);if(!c)return null;const {t,voice,gain}=c;
+        const f=PITCHES[(params.index!==undefined?params.index:tickCount++)%PITCHES.length];
+        const e=ctx.createGain();e.connect(gain);envelope(e.gain,t,{attack:0.002,peak:0.22,release:0.04});
+        osc('sine',f,t,t+0.07,voice,e);return voice;
+      },
+      // Low scanner texture. Runs until stop() is called on the returned voice.
+      scan(params){
+        const c=begin('scan',params);if(!c)return null;const {t,voice,gain}=c;
+        const bus=ctx.createGain();bus.connect(gain);
+        bus.gain.setValueAtTime(FLOOR,t);bus.gain.linearRampToValueAtTime(0.09,t+0.15);
+        const far=t+(params.maxSeconds||12);
+        noiseSource(t,far,voice,bus,{filter:'bandpass',freq:380,q:5,loop:true});
+        const hum=ctx.createGain();hum.gain.value=0.35;hum.connect(bus);
+        osc('sine',110,t,far,voice,hum);
+        const lfo=osc('sine',5.5,t,far,voice,ctx.createGain(),1);
+        try{lfo.g.gain.value=0.02;lfo.g.connect(bus.gain);}catch{}
+        return voice;
+      },
+      // Coordinate digits settle: three short rising sine notes.
+      resolve(params){
+        const c=begin('resolve',params);if(!c)return null;const {t,voice,gain}=c;
+        [[523.25,0],[659.25,0.07],[880,0.14]].forEach(([f,d])=>{const e=ctx.createGain();e.connect(gain);envelope(e.gain,t+d,{attack:0.006,peak:0.24,release:0.24});osc('sine',f,t+d,t+d+0.32,voice,e);});
+        return voice;
+      },
+      // Map descent: filtered noise rising in pitch, swelling, then fading before the lock.
+      descend(params){
+        const c=begin('descend',params);if(!c)return null;const {t,voice,gain}=c;
+        const d=Math.max(0.3,(params.duration||2.9)),end=t+d;
+        const bus=ctx.createGain();bus.connect(gain);
+        bus.gain.setValueAtTime(FLOOR,t);bus.gain.linearRampToValueAtTime(0.42,t+d*0.55);bus.gain.exponentialRampToValueAtTime(FLOOR,end);
+        const n=noiseSource(t,end+0.05,voice,bus,{filter:'bandpass',freq:250,q:1.8,loop:true});
+        n.f.frequency.exponentialRampToValueAtTime(3200,t+d*0.9);
+        const sweepGain=ctx.createGain();sweepGain.gain.value=0.12;sweepGain.connect(bus);
+        const sweep=osc('sine',180,t,end+0.05,voice,sweepGain);sweep.o.frequency.exponentialRampToValueAtTime(900,t+d*0.9);
+        return voice;
+      },
+      // Target lock: a soft click and a clean two-partial tone.
+      lock(params){
+        const c=begin('lock',params);if(!c)return null;const {t,voice,gain}=c;
+        const click=ctx.createGain();click.connect(gain);envelope(click.gain,t,{attack:0.001,peak:0.18,release:0.02});
+        noiseSource(t,t+0.05,voice,click,{filter:'highpass',freq:3000,q:0.7});
+        [[880,0.3,0.6],[1320,0.18,0.42],[1760,0.07,0.25]].forEach(([f,peak,rel])=>{const e=ctx.createGain();e.connect(gain);envelope(e.gain,t,{attack:0.004,peak,release:rel});osc('sine',f,t,t+rel+0.05,voice,e);});
+        return voice;
+      },
+      // A quiet, neutral falling interval for results without a location.
+      neutral(params){
+        const c=begin('neutral',params);if(!c)return null;const {t,voice,gain}=c;
+        const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1200;lp.connect(gain);
+        [[392,0],[293.66,0.11]].forEach(([f,d])=>{const e=ctx.createGain();e.connect(lp);envelope(e.gain,t+d,{attack:0.012,peak:0.2,release:0.34});osc('sine',f,t+d,t+d+0.45,voice,e);});
+        return voice;
+      },
+      // Read failure: two short, low, dull pulses. Distinct from neutral, never harsh.
+      error(params){
+        const c=begin('error',params);if(!c)return null;const {t,voice,gain}=c;
+        const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=620;lp.connect(gain);
+        [0,0.17].forEach(d=>{const e=ctx.createGain();e.connect(lp);envelope(e.gain,t+d,{attack:0.008,peak:0.26,hold:0.05,release:0.09});osc('sawtooth',164.81,t+d,t+d+0.2,voice,e);});
+        return voice;
+      },
+      // Small acknowledgement when the person turns sound on.
+      confirm(params){
+        const c=begin('confirm',params);if(!c)return null;const {t,voice,gain}=c;
+        [[660,0],[880,0.07]].forEach(([f,d])=>{const e=ctx.createGain();e.connect(gain);envelope(e.gain,t+d,{attack:0.005,peak:0.2,release:0.14});osc('sine',f,t+d,t+d+0.2,voice,e);});
+        return voice;
+      }
+    };
+
+    function cue(name,params={}){
+      const fn=cues[name];if(!fn)return null;
+      try{return fn(params)||null;}catch{return null;}
+    }
+    function stopAll(fade=0.05){for(const v of [...voices])v.stop(fade);}
+    function stopGeneration(gen,fade=0.05){for(const v of [...voices])if(v.gen===gen)v.stop(fade);}
+    function applyMaster(){
+      if(!ctx||!master)return;
+      try{const now=ctx.currentTime,g=master.gain;g.cancelScheduledValues(now);g.setValueAtTime(g.value,now);g.linearRampToValueAtTime(self.enabled?volumeToGain(self.volume):0,now+0.04);}catch{}
+    }
+
+    /** Must be called from a user gesture. Resolves to the resulting status; never rejects. */
+    async function unlock(){
+      if(!self.enabled)return 'off';
+      if(!self.supported)return 'unsupported';
+      if(!ensureGraph())return 'unsupported';
+      try{
+        if(ctx.state!=='running'&&typeof ctx.resume==='function'){
+          await Promise.race([ctx.resume(),new Promise(resolve=>setTimeout(resolve,800))]);
+        }
+      }catch{}
+      const running=assumeRunning||ctx.state==='running';
+      self.blocked=!running;
+      return running?'running':'blocked';
+    }
+
+    return {
+      unlock,cue,stopAll,stopGeneration,
+      setEnabled(on){
+        self.enabled=!!on;
+        if(!self.enabled)stopAll(0.04);
+        applyMaster();
+      },
+      setVolume(v){self.volume=clamp(Number(v),0,1);applyMaster();},
+      get enabled(){return self.enabled;},get volume(){return self.volume;},get supported(){return self.supported;},get blocked(){return self.blocked;},
+      get state(){return ctx?ctx.state:'none';},
+      get active(){return voices.size;},
+      get context(){return ctx;},
+      snapshot(){return {supported:self.supported,enabled:self.enabled,blocked:self.blocked,state:ctx?ctx.state:'none',volume:self.volume,voices:voices.size};},
+      cueNames:Object.keys(cues)
+    };
+  }
+
+  return {create,volumeToGain};
+});
+</script><script>/*
+ * Scan stage: the optical-scanner presentation around the selected image.
+ *
+ * Most of the look is CSS, keyed off `data-phase` on the bay, so cancelling is
+ * just changing that attribute. JavaScript only handles what CSS cannot:
+ *   - a small canvas with (a) fragments of the file's REAL bytes and, once the
+ *     report exists, REAL tag names, drifting through the margins beside the
+ *     scan line, and (b) decorative segmentation tiles that light behind the line;
+ *   - the tag ticker under the image, which only ever shows tags that were read;
+ *   - the digit-settle effect used on coordinates.
+ *
+ * Nothing here detects objects, faces or places. The tiles are a grid that does
+ * not look at the image at all, and they carry no labels.
+ */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.ScanStage=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+
+  const PHASES=['idle','ready','acquire','scan','reveal','resolve','fly','lock','settled','error'];
+  const hex=(n,w)=>n.toString(16).toUpperCase().padStart(w,'0');
+  // Tags worth showing first. Only ones that exist in the file are used.
+  const PRIORITY=['Make','Model','LensModel','DateTimeOriginal','CreateDate','ExposureTime','FNumber','ISO','ISOSpeedRatings','FocalLength','GPSLatitude','GPSLongitude','GPSAltitude'];
+  const tagName=tag=>String(tag).split('.').at(-1).split(':').at(-1);
+
+  /** Picks tags to show on the ticker, from the real report only. */
+  function pickTags(metadata,limit=10){
+    const list=Array.isArray(metadata)?metadata:[],out=[],used=new Set();
+    for(const name of PRIORITY){const f=list.find(x=>tagName(x.tag).toLowerCase()===name.toLowerCase());if(f&&!used.has(f)){used.add(f);out.push(f);}}
+    for(const f of list){if(out.length>=limit)break;if(!used.has(f)&&typeof f.value==='string'&&!f.value.startsWith('[')){used.add(f);out.push(f);}}
+    return out.slice(0,limit).map(f=>({name:tagName(f.tag),value:String(f.value)}));
+  }
+  /** Samples evenly spaced real bytes from a file buffer. */
+  function sampleBytes(buffer,count=40){
+    const u8=buffer instanceof Uint8Array?buffer:new Uint8Array(buffer),n=u8.length,out=[];
+    if(!n)return out;
+    const span=Math.min(8,n);
+    for(let i=0;i<count;i++){const offset=count>1?Math.floor(i*(n-span)/(count-1)):0;out.push({offset,bytes:Array.from(u8.subarray(offset,offset+span))});}
+    return out;
+  }
+
+  /** Digit-settle effect. The real element always holds the exact text; the overlay is decoration. */
+  function scramble(real,overlay,finalText,{duration=600,step=48,now=()=>Date.now(),setTimeoutFn=(fn,ms)=>setTimeout(fn,ms),clearTimeoutFn=id=>clearTimeout(id),random=Math.random,onDone}={}){
+    const chars=[...String(finalText)];let timer=0,stopped=false;const start=now();
+    real.classList.add('is-scrambling');
+    const finish=()=>{if(stopped)return;stopped=true;clearTimeoutFn(timer);overlay.textContent='';real.classList.remove('is-scrambling');if(onDone)onDone();};
+    function frame(){
+      if(stopped)return;
+      const t=Math.min(1,(now()-start)/duration),settled=Math.floor(t*chars.length);
+      overlay.textContent=chars.map((c,i)=>i<settled||!/\d/.test(c)?c:String(Math.floor(random()*10))).join('');
+      if(t>=1)finish();else timer=setTimeoutFn(frame,step);
+    }
+    frame();
+    return {cancel(){if(stopped)return;stopped=true;clearTimeoutFn(timer);overlay.textContent='';real.classList.remove('is-scrambling');},get active(){return !stopped;}};
+  }
+
+  function create({bay,frame,canvas,ticker,onTick,now=()=>performance.now(),raf=cb=>requestAnimationFrame(cb),caf=id=>cancelAnimationFrame(id),setTimeoutFn=(fn,ms)=>setTimeout(fn,ms),clearTimeoutFn=id=>clearTimeout(id)}){
+    const ctx=canvas.getContext?canvas.getContext('2d'):null;
+    let phase='idle',rafId=0,running=false,sample=[],tags=[],fragments=[],tiles=[],metrics=null,theatrics=true,sweepMs=900,startedAt=0,lastFrame=0,tickTimers=[],lastBand=-1,pass=0;
+    const tickerKey=ticker&&ticker.querySelector('.ticker-key'),tickerValue=ticker&&ticker.querySelector('.ticker-value');
+    const rand=(a,b)=>a+Math.random()*(b-a);
+
+    function setPhase(p){phase=p;bay.dataset.phase=p;}
+    function setTimings(profile){
+      sweepMs=Math.max(380,Math.round(profile.scan*1.05));
+      bay.style.setProperty('--t-acquire',profile.acquire+'ms');bay.style.setProperty('--t-scan',profile.scan+'ms');bay.style.setProperty('--t-reveal',profile.reveal+'ms');
+      bay.style.setProperty('--t-lock',profile.lock+'ms');bay.style.setProperty('--t-sweep',sweepMs+'ms');
+    }
+    function measure(){
+      const b=canvas.getBoundingClientRect(),f=frame.getBoundingClientRect(),dpr=Math.min(2,(typeof devicePixelRatio==='number'&&devicePixelRatio)||1);
+      if(!b.width||!f.width){metrics=null;return false;}
+      metrics={w:b.width,h:b.height,fx:f.left-b.left,fy:f.top-b.top,fw:f.width,fh:f.height,dpr};
+      canvas.width=Math.round(b.width*dpr);canvas.height=Math.round(b.height*dpr);   // CSS owns the displayed size
+      const cols=12,rows=Math.max(4,Math.round(cols*metrics.fh/metrics.fw));
+      tiles=[];for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)tiles.push({c,r,cols,rows,lit:-1e9,gain:0});
+      return true;
+    }
+    // Position of the CSS sweep line, 0 at the top and 1 at the bottom of the image.
+    function sweepPosition(t){
+      const el=frame.querySelector('.sweep-run');const a=el&&el.getAnimations?el.getAnimations()[0]:null;
+      const elapsed=a&&a.currentTime!=null?Number(a.currentTime):t-startedAt;
+      return ((elapsed%sweepMs)/sweepMs);
+    }
+    function spawn(side,y,t){
+      if(fragments.length>=14)return;
+      // Fragments are sized to the margin they drift in, so none is ever clipped or drawn over the image.
+      const margin=side==='left'?metrics.fx:metrics.w-(metrics.fx+metrics.fw),max=Math.floor((margin-12)/5.9);
+      if(max<6)return;
+      const yy=y+rand(-14,6);
+      if(fragments.some(f=>f.side===side&&Math.abs(f.y-yy)<11&&t-f.born<500))return;
+      let text;
+      if(side==='right'&&tags.length){const name=tags[Math.floor(Math.random()*tags.length)].name;text=name.length>max?name.slice(0,max-1)+'…':name;}
+      else if(sample.length){const s=sample[Math.floor(Math.random()*sample.length)],count=Math.max(1,Math.min(4,Math.floor((max-5)/3)));text=hex(s.offset&0xffff,4)+' '+s.bytes.slice(0,count).map(b=>hex(b,2)).join(' ');}
+      else return;
+      fragments.push({side,y:yy,born:t,life:rand(650,950),text});
+    }
+    function draw(t){
+      if(!ctx||!metrics)return;
+      const {w,h,fx,fy,fw,fh,dpr}=metrics;
+      ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+      const pos=sweepPosition(t),lineY=fy+fh*pos,band=Math.floor(pos*tiles[tiles.length-1].rows);
+      // Light the tile row the line has just crossed.
+      if(band!==lastBand){if(band<lastBand)pass++;lastBand=band;for(const tile of tiles)if(tile.r===band&&Math.random()<.62){tile.lit=t;tile.gain=Math.max(.35,1-pass*.18);}}
+      const tw=fw/tiles[0].cols,th=fh/tiles[0].rows;
+      for(const tile of tiles){
+        const age=t-tile.lit;if(age>900||age<0)continue;const a=(1-age/900)*tile.gain;
+        ctx.globalAlpha=a*.5;ctx.strokeStyle='#ea668d';ctx.lineWidth=1;ctx.strokeRect(fx+tile.c*tw+1.5,fy+tile.r*th+1.5,tw-3,th-3);
+        ctx.globalAlpha=a*.12;ctx.fillStyle='#ea668d';ctx.fillRect(fx+tile.c*tw+1.5,fy+tile.r*th+1.5,tw-3,th-3);
+      }
+      // Fragments only in the margins beside the image, never over it.
+      const marginL=fx,marginR=w-(fx+fw);
+      if(running&&Math.random()<.55){if(marginL>46)spawn('left',lineY,t);if(marginR>46)spawn('right',lineY,t);}
+      ctx.font='10px "Cascadia Mono","Consolas",ui-monospace,monospace';ctx.textBaseline='middle';
+      fragments=fragments.filter(f=>t-f.born<f.life);
+      for(const f of fragments){
+        const age=(t-f.born)/f.life,alpha=age<.15?age/.15:age>.6?(1-age)/.4:1;
+        ctx.globalAlpha=alpha*.85;ctx.fillStyle=f.side==='left'?'#c98ba2':'#f2a2bd';
+        const yy=f.y+(f.side==='left'?-1:1)*age*6;
+        if(f.side==='left'){ctx.textAlign='right';ctx.fillText(f.text,fx-8,yy);}else{ctx.textAlign='left';ctx.fillText(f.text,fx+fw+8,yy);}
+      }
+      ctx.globalAlpha=1;
+    }
+    function loop(t){
+      rafId=0;
+      if(!running&&!fragments.length&&!tiles.some(x=>t-x.lit<900)){ctx&&metrics&&ctx.clearRect(0,0,metrics.w,metrics.h);return;}
+      if(typeof document!=='undefined'&&document.hidden){rafId=raf(loop);return;}
+      if(t-lastFrame>=32){lastFrame=t;draw(t);}
+      rafId=raf(loop);
+    }
+    function startCanvas(){
+      if(!ctx||!theatrics)return;
+      if(!measure())return;
+      running=true;fragments=[];pass=0;lastBand=-1;startedAt=now();lastFrame=0;
+      if(!rafId)rafId=raf(loop);
+    }
+    function stopCanvas(){running=false;}
+    function killCanvas(){running=false;fragments=[];if(rafId){caf(rafId);rafId=0;}if(ctx&&metrics)ctx.clearRect(0,0,metrics.w,metrics.h);for(const t of tiles)t.lit=-1e9;}
+    function clearTicks(){for(const id of tickTimers)clearTimeoutFn(id);tickTimers=[];}
+    function showTag(tag){if(!ticker)return;tickerKey.textContent=tag?tag.name:'';tickerValue.textContent=tag?tag.value.slice(0,36):'';ticker.classList.toggle('on',!!tag);}
+
+    return {
+      get phase(){return phase;},
+      PHASES,pickTags,sampleBytes,
+      setSample(list){sample=Array.isArray(list)?list:[];},
+      /** An image has been chosen and is seated, not yet analysed. */
+      ready(){this.stop();showTag(null);setPhase('ready');},
+      acquire(profile){this.stop();theatrics=profile.theatrics;setTimings(profile);showTag(null);setPhase('acquire');},
+      scan(profile){theatrics=profile.theatrics;setTimings(profile);setPhase('scan');startCanvas();},
+      reveal(profile,metadata){
+        setTimings(profile);setPhase('reveal');stopCanvas();
+        tags=pickTags(metadata);
+        if(!profile.theatrics||!tags.length){showTag(null);return [];}
+        // One tag per tick across the beat, capped so ticks stay sparse.
+        const shown=tags.slice(0,Math.max(3,Math.min(8,Math.round(profile.reveal/130)))),gap=profile.reveal/(shown.length+1);
+        shown.forEach((tag,i)=>{tickTimers.push(setTimeoutFn(()=>{showTag(tag);if(onTick)onTick(i,tag);},Math.round(gap*(i+.6))));});
+        tickTimers.push(setTimeoutFn(()=>showTag(null),Math.round(profile.reveal*0.97)));
+        return shown;
+      },
+      resolve(profile){setTimings(profile);setPhase('resolve');showTag(null);},
+      fly(){setPhase('fly');},
+      lock(profile){setTimings(profile);setPhase('lock');},
+      /** Final resting look. kind: located | neutral | warning */
+      settle(kind){this.stop();showTag(null);bay.dataset.outcome=kind||'neutral';setPhase('settled');},
+      fail(){this.stop();showTag(null);bay.dataset.outcome='error';setPhase('error');},
+      /** Stops every animation and timer this stage owns, leaving the current look in place. */
+      stop(){clearTicks();killCanvas();},
+      /** Back to an empty bay. */
+      reset(){this.stop();showTag(null);delete bay.dataset.outcome;sample=[];tags=[];setPhase('idle');},
+      /** Re-measure after a layout change. */
+      resize(){if(running)measure();},
+      get active(){return running||!!rafId||tickTimers.length>0;},
+      scramble
+    };
+  }
+
+  return {create,scramble,pickTags,sampleBytes,PHASES};
+});
+</script><script>/*
+ * META trace: application shell.
+ *
+ * Two kinds of state are kept apart on purpose.
+ *
+ *   Analysis state    What the file actually contains. It is produced by the real
+ *                     parser (metadata-core.js and metadata-parser.js) and never
+ *                     depends on animation, sound or the map.
+ *   Presentation      How and when that result is shown. It is run by
+ *                     presentation-controller.js, which is told the facts through
+ *                     session.signal and decides only the timing.
+ *
+ * Every asynchronous task carries a generation number. Choosing another file,
+ * Clear and starting another analysis all bump it, which makes every pending
+ * parse, timer, sound, scramble and map flight from an older generation stale.
+ * Stale work either stops (where it can) or is ignored (where it cannot).
+ */
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const Core = MetadataCore;
+  const Stage = ScanStage;
+  const mapData = window.TRACE_MAP_DATA || null;
+  const mapMeta = window.TRACE_MAP_META || null;
+  // Street detail is only promised when the bundled geometry is really present.
+  const hasLocalData = !!(mapData && Array.isArray(mapData.features) && mapData.features.length && mapMeta && Array.isArray(mapMeta.bounds));
+
+  const FILE_HEAD_BYTES = 512;
+  const PARSE_TIMEOUT_MS = 12000;
+  const SETTINGS_KEY = 'metatrace.settings.v1';
+  const SAFE_MIME = {jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', tiff: 'image/tiff', heic: 'image/heic', avif: 'image/avif'};
+
+  /* ------------------------------------------------------------------ messages -- */
+
+  const OUTCOMES = {
+    located: {kind: 'success', title: 'GPS coordinates found', message: 'A valid coordinate pair was read from the image’s embedded metadata.'},
+    no_location: {kind: 'neutral', icon: 'i-info', title: 'No location metadata found', message: 'This image has no embedded GPS coordinate pair. A location cannot be determined from its metadata.', rail: 'This file records no GPS position.'},
+    incomplete_location: {kind: 'warning', icon: 'i-warn', title: 'Location metadata is incomplete', message: 'Some GPS tags are present, but the coordinate pair or hemisphere references are incomplete. No marker has been placed.', rail: 'The file records only part of a GPS position.'},
+    invalid_location: {kind: 'warning', icon: 'i-warn', title: 'Location metadata is invalid', message: 'GPS tags were found, but their numbers, ranges, or references are invalid. No marker has been placed.', rail: 'The recorded GPS values are not valid coordinates.'},
+    conflicting_location: {kind: 'warning', icon: 'i-warn', title: 'Location metadata conflicts', message: 'The embedded metadata contains different GPS coordinate pairs. No coordinate pair has been selected.', rail: 'The file records more than one GPS position.'}
+  };
+  const FAILURES = {
+    unsupported_format: 'Unsupported image format',
+    file_too_large: 'Image is too large',
+    invalid_file: 'Empty image file'
+  };
+  const STATUS_ICON = {neutral: 'i-info', busy: 'i-busy', success: 'i-ok', warning: 'i-warn', error: 'i-error'};
+  const GROUP_LABELS = {gps: 'GPS', ifd0: 'Camera and image', exif: 'Exposure', ifd1: 'Thumbnail', interop: 'Interoperability', xmp: 'XMP', iptc: 'IPTC', jfif: 'JFIF', ihdr: 'Image header', other: 'Other'};
+  const GROUP_ORDER = {gps: 0, ifd0: 1, exif: 2};
+
+  /* --------------------------------------------------------------------- state -- */
+
+  let generation = 0;
+  const state = {
+    file: null,
+    canAnalyze: false,
+    previewURL: null,
+    analysis: 'idle',        // idle | selected | reading | complete | failed
+    report: null,
+    error: null,
+    startedAt: 0,
+    job: null,               // the parser worker job of the current generation
+    waiting: false,          // scan beat is over but the report is not ready yet
+    heldLog: null,           // result lines of the log, kept back until the reveal (null = not holding)
+    heldElapsed: null,
+    clean: false
+  };
+  const settings = {sound: true, volume: 70, motion: null};   // motion null = follow the system preference
+  let pres = newPresentation(0, false);
+
+  function newPresentation(gen, replay) {
+    return {gen, replay, scan: null, descend: null, scramblers: [], pin: null, accuracy: null, shown: {outcome: false, details: false, coords: false, mapCoverage: false}};
+  }
+
+  /* ----------------------------------------------------------------- utilities -- */
+
+  const stale = gen => gen !== generation;
+  function setText(id, text) {$(id).textContent = text;}
+  function node(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+  function useIcon(id, symbol) {$(id).setAttribute('href', '#' + symbol);}
+  function format(n, digits = 8) {return n.toFixed(digits);}
+  function pair(p) {return format(p.latitude) + ', ' + format(p.longitude);}
+  function plural(n, word) {return n + ' ' + word + (n === 1 ? '' : 's');}
+
+  let toastTimer = 0;
+  function toast(text) {
+    setText('toast', text);
+    $('toast').classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4200);
+  }
+  function announce(text, urgent = false) {
+    const target = $(urgent ? 'announceAlert' : 'announce');
+    target.textContent = '';
+    setTimeout(() => {target.textContent = text;}, 30);
+  }
+
+  // Log offsets are real processing time since the analysis was started.
+  function offsetLabel() {
+    if (!state.startedAt) return 'ready';
+    const ms = Math.max(0, Math.round(performance.now() - state.startedAt));
+    return '+' + (ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(2) + ' s');
+  }
+  function appendLogLine(time, text, kind) {
+    const line = node('div', 'log-line log-' + kind);
+    line.append(node('span', 'log-time num', time), node('span', '', text));
+    const box = $('analysisLog');
+    box.append(line);
+    box.scrollTop = box.scrollHeight;
+  }
+  /**
+   * `hold` keeps a line out of sight until the presentation reaches the reveal, so the log does not announce the
+   * result before the screen does. The line keeps the time it really happened; only its appearance is deferred.
+   */
+  function log(text, kind = 'info', {hold = false} = {}) {
+    const time = offsetLabel();
+    if (hold && state.heldLog) {state.heldLog.push({time, text, kind}); return;}
+    appendLogLine(time, text, kind);
+  }
+  function releaseLog() {
+    const held = state.heldLog;
+    state.heldLog = null;
+    if (held) for (const line of held) appendLogLine(line.time, line.text, line.kind);
+    if (state.heldElapsed) {setText('elapsed', state.heldElapsed); state.heldElapsed = null;}
+  }
+  function setElapsed(ms) {
+    const label = ms + ' ms';
+    if (state.heldLog) state.heldElapsed = label; else setText('elapsed', label);
+  }
+  function resetLog(first) {
+    $('analysisLog').replaceChildren();
+    if (first) log(first);
+  }
+
+  function setStatus(title, message, kind = 'neutral') {
+    $('status').dataset.kind = kind;
+    useIcon('statusIcon', STATUS_ICON[kind] || STATUS_ICON.neutral);
+    setText('statusTitle', title);
+    setText('statusMessage', message);
+  }
+  function showNotice(title, message, icon = 'i-info') {
+    setText('mapNoticeTitle', title);
+    setText('mapNoticeText', message);
+    useIcon('mapNoticeIcon', icon);
+    $('mapNotice').hidden = false;
+  }
+  function hideNotice() {$('mapNotice').hidden = true;}
+
+  /* ------------------------------------------------------------------ settings -- */
+
+  const reducedQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function effectiveMotion() {return settings.motion || (reducedQuery && reducedQuery.matches ? 'reduced' : 'full');}
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+      if (!saved) return;
+      if (typeof saved.sound === 'boolean') settings.sound = saved.sound;
+      if (Number.isFinite(saved.volume)) settings.volume = Math.min(100, Math.max(0, Math.round(saved.volume)));
+      if (['full', 'fast', 'reduced'].includes(saved.motion)) settings.motion = saved.motion;
+    } catch {/* storage unavailable or corrupt: defaults apply */}
+  }
+  function saveSettings() {
+    try {localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));} catch {/* not persisted */}
+  }
+  function applyMotion() {
+    document.documentElement.dataset.motion = effectiveMotion();
+    $('motion').value = effectiveMotion();
+  }
+
+  /* --------------------------------------------------------------------- audio -- */
+
+  const audio = AudioEngine.create({enabled: true, volume: 0.7});
+  let unlocking = Promise.resolve('idle');
+
+  /** Must be called synchronously from a user gesture. The analysis never waits for it. */
+  function unlockAudio() {
+    if (!settings.sound) return unlocking;
+    unlocking = audio.unlock().then(status => {syncSoundChip(); return status;});
+    return unlocking;
+  }
+  /**
+   * Plays a cue for the given generation. If the audio context is still resuming
+   * the cue starts as soon as it is ready, unless the generation went stale first.
+   * Returns a handle whose stop() works in both cases.
+   */
+  function play(name, params = {}) {
+    const gen = params.gen === undefined ? generation : params.gen;
+    const handle = {voice: null, cancelled: false, stop(fade) {this.cancelled = true; if (this.voice) this.voice.stop(fade);}};
+    if (!settings.sound) return handle;
+    const start = () => {if (!handle.cancelled && !stale(gen)) handle.voice = audio.cue(name, {...params, gen});};
+    if (audio.state === 'running' || !audio.supported) start(); else unlocking.then(start);
+    return handle;
+  }
+  function syncSoundChip() {
+    const supported = audio.supported;
+    const mode = !supported ? 'unsupported' : !settings.sound ? 'off' : audio.blocked ? 'blocked' : 'on';
+    const chip = $('soundToggle');
+    chip.dataset.state = mode;
+    chip.setAttribute('aria-pressed', String(mode === 'on' || mode === 'blocked'));
+    setText('soundLabel', {on: 'Sound on', off: 'Sound off', blocked: 'Sound blocked', unsupported: 'Sound unavailable'}[mode]);
+    useIcon('soundIcon', mode === 'on' ? 'i-sound-on' : 'i-sound-off');
+    chip.title = mode === 'blocked' ? 'The browser has not allowed audio yet. Select to try again.' : mode === 'unsupported' ? 'This browser cannot play the interface sounds.' : '';
+  }
+  async function onSoundToggle() {
+    if (settings.sound && audio.blocked) {
+      // Second chance: retry the unlock from this gesture. If it still fails, turn sound off.
+      const result = await unlockAudio();
+      if (result !== 'running') {
+        settings.sound = false; audio.setEnabled(false); saveSettings(); syncSoundChip();
+        toast('The browser is blocking audio for this page, so sound has been turned off.');
+      }
+      return;
+    }
+    settings.sound = !settings.sound;
+    audio.setEnabled(settings.sound);
+    saveSettings();
+    if (settings.sound) {
+      const result = await unlockAudio();
+      if (result === 'running') play('confirm');
+      else if (result === 'blocked') toast('The browser has not allowed audio yet. Select Sound again after interacting with the page.');
+    }
+    syncSoundChip();
+  }
+
+  /* ---------------------------------------------------------------------- map -- */
+
+  const map = L.map('map', {zoomControl: false, minZoom: 1, maxZoom: 20, zoomSnap: .1, zoomDelta: .5, worldCopyJump: true, fadeAnimation: false}).setView([20, 0], 2.2);
+  map.createPane('traceBase').style.zIndex = 100;
+  const baseLayer = TraceCanvasLayer.create(L, {
+    world: window.TRACE_WORLD_DATA, local: hasLocalData ? mapData : null, bounds: hasLocalData ? mapMeta.bounds : null,
+    localLabels: window.TRACE_MAP_LABELS, worldLabels: window.TRACE_WORLD_LABELS,
+    selectLabels: MapUtils.selectLabels, pane: 'traceBase'
+  }).addTo(map);
+  map.attributionControl.addAttribution('World: Natural Earth · Streets: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>');
+  L.control.scale({imperial: false, position: 'bottomright', maxWidth: 90}).addTo(map);
+  new ResizeObserver(() => {map.invalidateSize({pan: false}); stage.resize();}).observe($('map'));
+
+  const director = MapDirector.create({L, map, bounds: hasLocalData ? mapMeta.bounds : null, onInterrupt() {
+    if (pres.descend) pres.descend.stop(0.2);
+    toast('The map is yours now. Use Recenter to return to the GPS position.');
+  }});
+  // Build the street geometry once, during idle time, so the descent never stalls to build it.
+  (window.requestIdleCallback || (cb => setTimeout(cb, 300)))(() => {try {baseLayer.prepare();} catch (error) {console.error(error);}});
+
+  /* ---------------------------------------------------------------- scan stage -- */
+
+  const stage = Stage.create({
+    bay: $('bay'), frame: $('frame'), canvas: $('scanCanvas'), ticker: $('ticker'),
+    onTick: index => play('tick', {index})
+  });
+
+  /* --------------------------------------------------------- presentation hooks -- */
+
+  const kindOf = report => report.status === 'located' ? 'located' : report.status === 'no_location' ? 'neutral' : 'warning';
+  const isMappable = plan => plan.kind === 'regional' || plan.kind === 'overview';
+
+  const hooks = {
+    enter(name, ctx) {
+      if (stale(ctx.gen)) return;
+      switch (name) {
+        case 'acquire': beginPresentation(ctx); break;
+        case 'scan': {
+          stage.scan(ctx.profile);
+          pres.scan = play('scan', {gen: ctx.gen, maxSeconds: 12});
+          const wantsFlight = !ctx.replay || (state.report && state.report.status === 'located');
+          if (ctx.profile.animateCamera && wantsFlight) director.widen({animate: true, duration: Math.min(1.1, 0.9 * (ctx.profile.scan + ctx.profile.reveal) / 1000)});   // done before the readout appears
+          break;
+        }
+        case 'reveal':
+          if (pres.scan) pres.scan.stop(0.12);
+          stage.reveal(ctx.profile, ctx.report.metadata);
+          presentOutcome(ctx.report, ctx);
+          presentDetails(ctx.report, {animate: ctx.profile.theatrics});
+          break;
+        case 'resolve':
+          stage.resolve(ctx.profile);
+          setText('mapSubtitle', 'Locating the embedded GPS position.');
+          presentCoordinates(ctx.report, {animate: ctx.profile.theatrics, duration: Math.max(220, ctx.profile.resolve - 40)});
+          play('resolve', {gen: ctx.gen});
+          break;
+        case 'fly':
+          stage.fly();
+          hideNotice();
+          if (ctx.profile.animateCamera) pres.descend = play('descend', {gen: ctx.gen, duration: ctx.profile.fly / 1000});
+          break;
+        case 'lock': {
+          stage.lock(ctx.profile);
+          if (pres.descend) pres.descend.stop(0.15);
+          const plan = director.classify(ctx.report.location);
+          if (isMappable(plan)) {
+            placePin(ctx.report, {animate: ctx.profile.theatrics});
+            presentMapCoverage(ctx.report, plan, ctx);
+            play('lock', {gen: ctx.gen});
+          }
+          break;
+        }
+        case 'settled': presentFinal(ctx.report, {instant: false, ctx}); break;
+        case 'error': presentFailure(ctx.error, ctx); break;
+        default: break;
+      }
+    },
+    plan(ctx) {
+      const plan = director.classify(ctx.report.location);
+      if (plan.kind === 'regional') try {baseLayer.prepare();} catch (error) {console.error(error);}
+      return {fly: isMappable(plan)};
+    },
+    fly(ctx) {
+      return director.fly(ctx.report.location, {animate: ctx.profile.animateCamera, duration: ctx.profile.fly / 1000});
+    },
+    finish(ctx) {presentFinal(ctx.report, {instant: true, ctx});},
+    recover(ctx) {
+      director.cancel('cancelled');
+      director.jump(ctx.report.location);
+      log('The camera move did not finish, so the final view was applied directly.', 'warning');
+    },
+    dispose(ctx, reason) {
+      stage.stop();
+      cancelScramblers();
+      // A normal finish leaves the closing cue to ring out. Everything else stops sound and camera now.
+      if (reason !== 'settled') {
+        audio.stopAll(0.06);
+        director.cancel(reason === 'skip' ? 'skipped' : 'cancelled');
+      }
+    }
+  };
+
+  const controller = PresentationController.create({
+    hooks,
+    intensity: effectiveMotion,
+    onError: error => console.error(error)
+  });
+  controller.on(event => {
+    if (event.type === 'state') {
+      document.body.dataset.presentation = event.state;
+      if (event.state === 'settled' || event.state === 'error') state.waiting = false;
+      syncControls();
+    } else if (event.type === 'waiting') {
+      state.waiting = event.value;
+      if (event.value) setStatus('Reading image', 'Still reading the file. The result appears as soon as it is ready.', 'busy');
+      syncControls();
+    } else if (event.type === 'warning') {
+      log('The camera move took longer than expected.', 'warning');
+    }
+  });
+
+  function beginPresentation(ctx) {
+    pres = newPresentation(ctx.gen, ctx.replay);
+    stage.acquire(ctx.profile);
+    if (!ctx.replay) {
+      setStatus('Reading image', 'Checking the file signature and embedded metadata.', 'busy');
+      showNotice('Reading image metadata', 'Inspecting the selected file.');
+      setText('mapSubtitle', 'Reading the selected image.');
+    } else {
+      hideNotice();
+      setText('mapSubtitle', 'Showing the saved result again.');
+    }
+    play('intake', {gen: ctx.gen});
+  }
+
+  function cancelScramblers() {
+    for (const s of pres.scramblers) s.cancel();
+    pres.scramblers = [];
+  }
+
+  /* -------------------------------------------------- staged result rendering -- */
+  // Each present* function is idempotent so Skip can safely run all of them at once.
+
+  function presentOutcome(report, ctx) {
+    if (pres.shown.outcome) return;
+    pres.shown.outcome = true;
+    const outcome = OUTCOMES[report.status] || OUTCOMES.no_location;
+    setStatus(outcome.title, outcome.message, outcome.kind);
+    const quiet = ctx && ctx.replay;
+    if (report.status === 'located') {
+      showNotice('Position found', 'Moving the map to the embedded GPS position.', 'i-locate');
+    } else {
+      showNotice(outcome.title, outcome.message, outcome.icon);
+      setText('mapSubtitle', 'No validated coordinate pair to plot.');
+      setText('resultEmpty', outcome.rail);
+      $('resultEmpty').hidden = false;
+      if (!quiet) {
+        log(outcome.title + '.', 'warning');
+        for (const issue of report.issues || []) log(issue.error, 'warning');
+      }
+      if (report.status === 'conflicting_location') showCandidates(report);
+    }
+  }
+
+  function showCandidates(report) {
+    const list = $('candidateList');
+    list.replaceChildren();
+    for (const c of report.candidates || []) {
+      const item = node('li', 'num', pair(c));
+      item.append(node('span', '', 'Source: ' + c.source));
+      list.append(item);
+    }
+    $('candidates').hidden = !list.children.length;
+  }
+
+  function presentDetails(report, {animate}) {
+    if (pres.shown.details) return;
+    pres.shown.details = true;
+    releaseLog();
+    renderTags({animate});
+    renderSummary(report);
+    $('exportReport').disabled = false;
+    if (report.file.sha256) {
+      setText('fileHash', report.file.sha256);
+      $('hashPanel').hidden = false;
+    }
+  }
+
+  function presentCoordinates(report, {animate, duration}) {
+    if (pres.shown.coords || !report.location) return;
+    pres.shown.coords = true;
+    const p = report.location, lat = format(p.latitude), lon = format(p.longitude);
+    setText('latitude', lat);
+    setText('longitude', lon);
+    setText('latitudeDMS', Core.toDMS(p.latitude, 'lat'));
+    setText('longitudeDMS', Core.toDMS(p.longitude, 'lon'));
+    setText('altitude', p.altitude === null ? 'Not recorded' : p.altitude.toFixed(2) + ' m');
+    setText('accuracy', p.accuracyMeters === null ? 'Not recorded' : p.accuracyMeters.toFixed(1) + ' m');
+    $('resultEmpty').hidden = true;
+    $('coordinates').hidden = false;
+    $('copyCoordinates').disabled = false;
+    if (animate) {
+      // The real elements already hold the exact text. The overlays are decoration only.
+      pres.scramblers.push(Stage.scramble($('latitude'), $('latitudeFx'), lat, {duration}));
+      pres.scramblers.push(Stage.scramble($('longitude'), $('longitudeFx'), lon, {duration}));
+    }
+  }
+
+  function presentMapCoverage(report, plan, ctx) {
+    if (pres.shown.mapCoverage) return;
+    pres.shown.mapCoverage = true;
+    const p = report.location, regional = plan.kind === 'regional';
+    hideNotice();
+    setText('mapCoordinate', pair(p));
+    $('mapCoordinate').hidden = false;
+    setText('mapTitle', 'Embedded GPS');
+    setText('mapSubtitle', regional ? 'Detailed offline street geometry for Gainesville and the University of Florida.' : 'Exact GPS point on an offline world overview.');
+    setText('coverageBadge', regional ? 'OFFLINE / STREETS' : 'OFFLINE / OVERVIEW');
+    setText('coverageNote', regional
+      ? (mapMeta.features || 0).toLocaleString() + ' local map features. Coordinates come from the image.'
+      : 'Detailed offline streets are not bundled for this location, so the exact point stays on the world overview. Street detail is included for Gainesville and the University of Florida.');
+    if (!(ctx && ctx.replay)) log(regional ? 'GPS marker placed on the local street map.' : 'GPS marker placed on the offline world overview.', 'ok');
+  }
+
+  function presentPolar(report, ctx) {
+    if (pres.shown.mapCoverage) return;
+    pres.shown.mapCoverage = true;
+    showNotice('GPS found near a pole', 'The coordinates are valid, but this map projection cannot accurately display latitudes above 85.051°. The exact coordinates remain available in the results.', 'i-locate');
+    setText('mapSubtitle', 'Coordinate lies outside the map projection range.');
+    setText('coverageBadge', 'GPS / POLAR');
+    $('mapCoordinate').hidden = true;
+    if (!(ctx && ctx.replay)) log('Coordinates are outside the Web Mercator display range.', 'warning');
+  }
+
+  function presentFinal(report, {instant, ctx}) {
+    presentOutcome(report, ctx);
+    presentDetails(report, {animate: false});
+    let mapped = false;
+    if (report.status === 'located') {
+      presentCoordinates(report, {animate: false});
+      const plan = director.classify(report.location);
+      if (isMappable(plan)) {
+        mapped = true;
+        if (instant) {
+          if (plan.kind === 'regional') try {baseLayer.prepare();} catch (error) {console.error(error);}
+          director.jump(report.location);
+        }
+        if (!pres.pin) placePin(report, {animate: false});
+        presentMapCoverage(report, plan, ctx);
+        if (pres.pin) pres.pin.openPopup();
+      } else {
+        presentPolar(report, ctx);
+      }
+    }
+    if (!mapped) director.rest();      // nothing to plot: the camera comes to rest on the wide view, never mid-zoom
+    stage.settle(kindOf(report));
+    // The lock cue already played on the normal path. After Skip, or when nothing was mapped, play the closing cue.
+    if (!document.hidden) {
+      if (mapped && instant) play('lock', {gen: pres.gen});
+      else if (!mapped) play('neutral', {gen: pres.gen});
+    }
+    const outcome = OUTCOMES[report.status];
+    announce(report.status === 'located'
+      ? outcome.title + '. Latitude ' + format(report.location.latitude) + ', longitude ' + format(report.location.longitude) + '.'
+      : outcome.title + '. ' + outcome.message);
+    syncControls();
+  }
+
+  function presentFailure(error, ctx) {
+    releaseLog();
+    const title = FAILURES[error.code] || 'Could not read image metadata';
+    state.error = error;
+    state.analysis = 'failed';
+    stage.fail();
+    setStatus(title, error.message, 'error');
+    showNotice(title, 'No location has been assumed. ' + error.message, 'i-error');
+    setText('mapSubtitle', 'No validated coordinate pair to plot.');
+    director.rest();
+    setText('resultEmpty', 'Nothing could be read from this file.');
+    $('resultEmpty').hidden = false;
+    setText('metadataEmpty', 'No metadata could be read from this file.');
+    log(error.message, 'error');
+    if (state.startedAt) setText('elapsed', Math.round(performance.now() - state.startedAt) + ' ms');
+    announce(title + '. ' + error.message, true);
+    play('error', {gen: ctx ? ctx.gen : generation});
+    syncControls();
+  }
+
+  /* ---------------------------------------------------------- tables and summary -- */
+
+  function groupTags(fields) {
+    const groups = new Map();
+    for (const f of fields) {
+      const dot = f.tag.indexOf('.');
+      const key = dot > 0 ? f.tag.slice(0, dot) : 'other';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({field: f, leaf: dot > 0 ? f.tag.slice(dot + 1) : f.tag});
+    }
+    const rank = key => key in GROUP_ORDER ? GROUP_ORDER[key] : 3;
+    return [...groups].sort((a, b) => rank(a[0]) - rank(b[0]));
+  }
+
+  function renderTags({animate = false} = {}) {
+    // The tag table belongs to the reveal: typing in the filter while the scan is still running must not show it early.
+    if (state.report && !pres.shown.details) return;
+    const fields = state.report ? state.report.metadata : [];
+    const query = $('tagSearch').value.trim().toLowerCase();
+    const visible = fields.filter(f => !query || f.tag.toLowerCase().includes(query) || f.value.toLowerCase().includes(query));
+    const body = $('metadataBody');
+    body.replaceChildren();
+    body.classList.toggle('revealing', animate);
+    let index = 0;
+    for (const [group, rows] of groupTags(visible)) {
+      const header = node('tr', 'group' + (group === 'gps' ? ' is-gps' : '') + (animate ? ' row-in' : ''));
+      header.style.setProperty('--i', Math.min(index++, 28));
+      const title = node('td', '', GROUP_LABELS[group] || group);
+      title.colSpan = 2;
+      header.append(title);
+      body.append(header);
+      for (const {field, leaf} of rows) {
+        const tr = node('tr', (group === 'gps' ? 'is-gps' : '') + (animate ? ' row-in' : ''));
+        tr.style.setProperty('--i', Math.min(index++, 28));
+        const key = node('td', '', leaf);
+        key.title = field.tag;
+        tr.append(key, node('td', '', field.value));
+        body.append(tr);
+      }
+    }
+    setText('tagCount', (query ? visible.length + ' / ' : '') + plural(fields.length, 'tag'));
+    $('metadataTable').hidden = visible.length === 0;
+    $('metadataEmpty').hidden = visible.length !== 0;
+    setText('metadataEmpty', !state.report ? 'Image metadata will appear here.' : fields.length ? 'No tags match your filter.' : 'No readable metadata tags were found.');
+  }
+
+  function renderSummary(report) {
+    const s = report.summary;
+    const entries = [
+      ['Camera', [s.make, s.model].filter(Boolean).join(' ')],
+      ['Recorded time', s.recordedTime],
+      ['Time offset', s.timeOffset],
+      ['Dimensions', s.width && s.height ? s.width + ' × ' + s.height : null],
+      ['GPS source', report.location && report.location.source]
+    ];
+    const box = $('captureSummary');
+    box.replaceChildren();
+    for (const [name, value] of entries) {
+      if (!value) continue;
+      const row = node('div');
+      row.append(node('dt', '', name), node('dd', '', String(value)));
+      box.append(row);
+    }
+    box.hidden = !box.children.length;
+  }
+
+  /* ------------------------------------------------------------------ pin etc. -- */
+
+  const RETICLE = '<svg class="reticle" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="2"/><path d="M32 4v15M32 45v15M4 32h15M45 32h15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="32" r="3.2" fill="currentColor"/></svg><i class="ring r1"></i><i class="ring r2"></i>';
+
+  function removePin() {
+    if (pres.pin) {pres.pin.remove(); pres.pin = null;}
+    if (pres.accuracy) {pres.accuracy.remove(); pres.accuracy = null;}
+    $('mapCoordinate').hidden = true;
+  }
+
+  function popupContent(report) {
+    const p = report.location;
+    const box = node('div', 'pin-card');
+    box.append(node('div', 'pin-pair num', pair(p)));
+    const list = node('dl');
+    const add = (name, value) => {list.append(node('dt', '', name), node('dd', 'num', value));};
+    add('Elevation', p.altitude === null ? 'Not recorded' : p.altitude.toFixed(2) + ' m');
+    add('Position error', p.accuracyMeters === null ? 'Not recorded' : p.accuracyMeters.toFixed(1) + ' m');
+    add('Read from', p.source);
+    box.append(list, node('p', '', 'Recorded in the image’s GPS tags.'));
+    return box;
+  }
+
+  function placePin(report, {animate}) {
+    removePin();
+    const p = report.location;
+    // The pin and the accuracy circle sit exactly on the recorded coordinate. They are never snapped to a road.
+    const icon = L.divIcon({className: 'trace-pin-icon', iconSize: [64, 64], iconAnchor: [32, 32], html: '<div class="trace-pin" data-lock="' + (animate ? 'true' : 'done') + '">' + RETICLE + '</div>'});
+    const marker = L.marker([p.latitude, p.longitude], {title: 'Embedded image GPS', zIndexOffset: 700, icon}).addTo(map);
+    marker.bindPopup(popupContent(report), {autoPan: false, offset: [0, -26], maxWidth: 300});
+    pres.pin = marker;
+    if (p.accuracyMeters !== null) {
+      pres.accuracy = L.circle([p.latitude, p.longitude], {radius: p.accuracyMeters, color: '#ec77a1', weight: 1, fillColor: '#c64d7e', fillOpacity: .07, interactive: false}).addTo(map);
+    }
+    syncControls();
+  }
+
+  /* ------------------------------------------------------------- file and parse -- */
+
+  async function sha256(bytes) {
+    if (!globalThis.crypto || !crypto.subtle) return null;
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    } catch {return null;}
+  }
+
+  async function parseFile(file, buffer, gen) {
+    if (typeof Worker !== 'function') return MetadataParser.parse(buffer);
+    let worker, url;
+    try {
+      url = URL.createObjectURL(new Blob([window.METADATA_WORKER_SOURCE], {type: 'text/javascript'}));
+      worker = new Worker(url);
+      URL.revokeObjectURL(url);
+    } catch {
+      if (url) URL.revokeObjectURL(url);
+      log('Worker unavailable; using the local parser.', 'warning');
+      return MetadataParser.parse(buffer);
+    }
+    return new Promise((resolve, reject) => {
+      let done = false, timer = 0;
+      const finish = (settle, value) => {
+        if (done) return;
+        done = true; clearTimeout(timer); worker.terminate();
+        if (state.job === job) state.job = null;
+        settle(value);
+      };
+      const job = {cancel() {const e = new Error('Analysis cancelled.'); e.name = 'AbortError'; finish(reject, e);}};
+      timer = setTimeout(() => {const e = new Error('Metadata parsing exceeded the 12-second limit.'); e.code = 'parse_error'; finish(reject, e);}, PARSE_TIMEOUT_MS);
+      state.job = job;
+      worker.onmessage = e => {
+        if (e.data && e.data.ok) return finish(resolve, e.data.result);
+        const error = new Error((e.data && e.data.message) || 'Metadata could not be read.');
+        error.code = (e.data && e.data.code) || 'parse_error';
+        finish(reject, error);
+      };
+      worker.onerror = async e => {
+        if (e.preventDefault) e.preventDefault();
+        if (done) return;
+        done = true; clearTimeout(timer); worker.terminate();
+        if (state.job === job) state.job = null;
+        try {
+          if (stale(gen)) throw Object.assign(new Error('Cancelled'), {name: 'AbortError'});
+          log('Worker startup failed; using the local parser.', 'warning');
+          const fresh = buffer.byteLength ? buffer : await file.arrayBuffer();
+          resolve(await MetadataParser.parse(fresh));
+        } catch (error) {reject(error);}
+      };
+      try {worker.postMessage({buffer}, [buffer]);} catch (error) {finish(reject, error);}
     });
   }
-  function renderTags(){const fields=ui.report?.metadata||[],q=$('tagSearch').value.trim().toLowerCase(),visible=fields.filter(f=>!q||f.tag.toLowerCase().includes(q)||f.value.toLowerCase().includes(q));$('metadataBody').replaceChildren();for(const f of visible){const tr=document.createElement('tr'),key=document.createElement('td'),value=document.createElement('td');key.textContent=f.tag;value.textContent=f.value;tr.append(key,value);$('metadataBody').append(tr);}$('tagCount').textContent=(q?visible.length+' / ':'')+fields.length+' tags';$('metadataTable').hidden=visible.length===0;$('metadataEmpty').hidden=visible.length!==0;$('metadataEmpty').textContent=fields.length?'No tags match your filter.':'No readable metadata tags were found.';}
-  function renderSummary(report){const entries=[['Camera',[report.summary.make,report.summary.model].filter(Boolean).join(' ')],['Recorded time',report.summary.recordedTime],['Time offset',report.summary.timeOffset],['Dimensions',report.summary.width&&report.summary.height?report.summary.width+' × '+report.summary.height:null],['GPS source',report.location?.source]];$('captureSummary').replaceChildren();for(const [name,value] of entries){if(!value)continue;const row=document.createElement('div'),label=document.createElement('span'),v=document.createElement('b');label.textContent=name;v.textContent=value;row.append(label,v);$('captureSummary').append(row);}$('captureSummary').hidden=!$('captureSummary').children.length;}
-  function renderReport(report){
-    ui.report=report;renderTags();renderSummary(report);$('exportReport').disabled=false;
-    if(report.file.sha256){$('fileHash').textContent=report.file.sha256;$('hashPanel').hidden=false;}
-    const messages={no_location:['No location metadata found','This image has no embedded GPS coordinate pair. A location cannot be determined from its metadata.'],incomplete_location:['Location metadata is incomplete','Some GPS tags are present, but the coordinate pair or hemisphere references are incomplete. No marker has been placed.'],invalid_location:['Location metadata is invalid','GPS tags were found, but their numbers, ranges, or references are invalid. No marker has been placed.'],conflicting_location:['Location metadata conflicts','The embedded metadata contains different GPS coordinate pairs. No coordinate pair has been selected.']};
-    if(report.status!=='located'){const [title,message]=messages[report.status]||messages.no_location;status(title,message,'warning');notice(title,message,'!');$('mapSubtitle').textContent='No validated coordinate pair to plot.';log(title+'.','warning');for(const issue of report.issues||[])log(issue.error,'warning');return;}
-    const p=report.location;$('latitude').textContent=p.latitude.toFixed(8);$('longitude').textContent=p.longitude.toFixed(8);$('latitudeDMS').textContent=Core.toDMS(p.latitude,'lat');$('longitudeDMS').textContent=Core.toDMS(p.longitude,'lon');$('altitude').textContent=p.altitude===null?'Not recorded':p.altitude.toFixed(2)+' m';$('accuracy').textContent=p.accuracyMeters===null?'Not recorded':p.accuracyMeters.toFixed(1)+' m';$('coordinates').hidden=false;$('copyCoordinates').disabled=false;
-    status('GPS coordinates found','A valid coordinate pair was read from the image’s embedded metadata.','success');log('GPSLatitude: '+p.latitude.toFixed(8),'ok');log('GPSLongitude: '+p.longitude.toFixed(8),'ok');if(p.altitude!==null)log('GPSAltitude: '+p.altitude.toFixed(2)+' m','ok');mapLocation(p);
+
+  /** The real analysis. It reports facts to the presentation and nothing else. */
+  async function runAnalysis(gen, session) {
+    const file = state.file;
+    try {
+      log('Reading ' + file.name + ' (' + file.size.toLocaleString() + ' bytes).');
+      const buffer = await file.arrayBuffer();
+      if (stale(gen)) return;
+      session.signal.acquired({bytes: buffer.byteLength});
+      const detected = Core.detectFormat(new Uint8Array(buffer));
+      if (!detected) throw Object.assign(new Error('Unsupported file format. Use JPEG, PNG, TIFF, WebP, HEIC, or AVIF.'), {code: 'unsupported_format'});
+      stage.setSample(Stage.sampleBytes(buffer, 40));   // real bytes, taken before the buffer moves to the worker
+      log('Detected format: ' + detected.toUpperCase() + '.');
+      const checksum = await sha256(buffer);
+      if (stale(gen)) return;
+      if (checksum) log('SHA-256 calculated from the selected file.', 'ok');
+      log('Parsing EXIF, GPS, XMP, and IPTC blocks.');
+      const parsed = await parseFile(file, buffer, gen);
+      if (stale(gen)) return;
+      const report = Core.describe(parsed.raw, file, parsed.format, checksum);
+      log(plural(report.metadata.length, 'metadata tag') + ' read.', 'ok', {hold: true});
+      if (report.status === 'located') {
+        log('GPSLatitude: ' + format(report.location.latitude), 'ok', {hold: true});
+        log('GPSLongitude: ' + format(report.location.longitude), 'ok', {hold: true});
+        if (report.location.altitude !== null) log('GPSAltitude: ' + report.location.altitude.toFixed(2) + ' m', 'ok', {hold: true});
+      }
+      state.report = report;
+      state.analysis = 'complete';
+      setElapsed(Math.round(performance.now() - state.startedAt));
+      log('Analysis complete.', 'ok', {hold: true});
+      session.signal.report(report);
+    } catch (error) {
+      if (stale(gen) || error.name === 'AbortError') return;
+      state.analysis = 'failed';
+      session.signal.fail(error);
+    }
   }
-  async function analyze(file){
-    if(!file)return;cancelCurrent();const token=ui.token;clearResults();$('analysisLog').replaceChildren();$('elapsed').textContent='…';notice('Reading image metadata','Inspecting the selected file.');$('fileCard').hidden=false;$('fileName').textContent=file.name;$('fileDetails').textContent=(file.size/1024/1024).toFixed(2)+' MiB';$('preview').hidden=true;$('previewFallback').hidden=false;document.body.setAttribute('aria-busy','true');const started=performance.now();
-    try{
-      if(!file.size)throw Object.assign(new Error('The selected file is empty.'),{code:'invalid_file'});
-      if(file.size>Core.MAX_FILE_BYTES)throw Object.assign(new Error('The image exceeds the 64 MiB limit. Choose a smaller original file.'),{code:'file_too_large'});
-      status('Reading image','Checking the file signature and embedded metadata.','busy');log('Reading '+file.name+' ('+file.size.toLocaleString()+' bytes).');
-      const buffer=await file.arrayBuffer();if(token!==ui.token)return;const format=Core.detectFormat(new Uint8Array(buffer));if(!format)throw Object.assign(new Error('Unsupported file format. Use JPEG, PNG, TIFF, WebP, HEIC, or AVIF.'),{code:'unsupported_format'});
-      $('fileDetails').textContent=format.toUpperCase()+' · '+(file.size/1024/1024).toFixed(2)+' MiB';preview(file,format);log('Detected format: '+format.toUpperCase()+'.');
-      const checksum=await hash(buffer);if(token!==ui.token)return;if(checksum)log('SHA-256 calculated from the selected file.','ok');
-      log('Parsing EXIF, GPS, XMP, and IPTC blocks.');const parsed=await parseFile(file,buffer,token);if(token!==ui.token)return;
-      const report=Core.describe(parsed.raw,file,parsed.format,checksum);log(report.metadata.length+' metadata tags read.','ok');renderReport(report);
-      $('elapsed').textContent=Math.round(performance.now()-started)+' ms';log('Analysis complete.','ok');
-    }catch(e){if(token!==ui.token||e.name==='AbortError')return;const title=e.code==='unsupported_format'?'Unsupported image format':e.code==='file_too_large'?'Image is too large':e.code==='invalid_file'?'Empty image file':'Could not read image metadata';status(title,e.message,'error');notice(title,'No location has been assumed. '+e.message,'×');log(e.message,'error');$('elapsed').textContent=Math.round(performance.now()-started)+' ms';}
-    finally{if(token===ui.token)document.body.setAttribute('aria-busy','false');}
+
+  /* ---------------------------------------------------------------- user actions -- */
+
+  /** Stops every pending parse, timer, sound, scramble and camera move. Safe at any time. */
+  function cancelAll(reason) {
+    generation++;
+    controller.cancel(reason);
+    if (state.job) state.job.cancel();
+    audio.stopAll(0.04);
+    director.cancel('cancelled');
+    stage.stop();
+    cancelScramblers();
+    state.waiting = false;
+    state.heldLog = null;
+    state.heldElapsed = null;
   }
-  function featureStyle(f){const p=f.properties,z=ui.map?.getZoom()||17,scale=Math.pow(2,Math.max(-2,Math.min(1.5,z-17)));if(p.kind==='building')return {color:p.highlight?'#d65b80':'#74404f',weight:p.highlight?1.3:.7,fillColor:p.highlight?'#4e2235':'#33212b',fillOpacity:.95};if(p.kind==='water')return {color:'#644151',weight:.8,fillColor:'#211722',fillOpacity:.95};if(p.kind==='green')return {color:'#39222c',weight:.3,fillColor:'#21161c',fillOpacity:.95};if(p.kind==='parking')return {color:'#57303e',weight:.6,fillColor:'#1b141a',fillOpacity:.95};if(p.kind==='paved')return {color:'#4c2938',weight:.5,fillColor:'#251820',fillOpacity:.9};if(p.kind==='barrier')return {color:'#b65f75',weight:.8,opacity:.55,dashArray:'2 3'};if(['tree','furniture','poi','bus'].includes(p.kind))return {color:p.kind==='tree'?'#794154':'#e07891',weight:.6,fillColor:p.kind==='tree'?'#3a2230':'#b45b75',fillOpacity:.7};const major=['primary','secondary','tertiary','trunk'].includes(p.highway),minor=['footway','path','cycleway','steps','pedestrian'].includes(p.highway);return {color:major?'#ad6275':minor?'#663c4a':'#734454',weight:Math.max(.65,(major?5.5:minor?.8:2.8)*scale),opacity:minor?.65:1,dashArray:minor?'2 3':null,lineCap:'round'};}
-  function refreshMap(){
-    if(!ui.map)return;const m=ui.map,z=m.getZoom();if(ui.roads)ui.roads.setStyle(featureStyle);if(ui.casing)ui.casing.setStyle(f=>{const s=featureStyle(f);return {...s,color:'#100a0f',weight:s.weight+2.8,dashArray:null};});
-    if(ui.details){const show=z>=17.5;if(show&&!m.hasLayer(ui.details))ui.details.addTo(m);if(!show&&m.hasLayer(ui.details))m.removeLayer(ui.details);}
-    ui.labels.clearLayers();const local=z>=14&&Core.inBounds({latitude:m.getCenter().lat,longitude:m.getCenter().lng},mapMeta.bounds),labels=local?window.TRACE_MAP_LABELS:window.TRACE_WORLD_LABELS;
-    const selected=MapUtils.selectLabels(labels,z,p=>m.latLngToContainerPoint([p.lat,p.lon]),m.getSize(),{});
-    for(const p of selected){const text=(p.symbol?'<i class="poi-symbol">'+escape(p.symbol)+'</i>':'')+escape(p.text);L.marker([p.lat,p.lon],{interactive:false,pane:'mapLabels',icon:L.divIcon({className:'osm-label-anchor',html:'<span class="osm-label osm-'+p.kind+'" style="width:'+p.width+'px;transform:rotate('+(p.angle||0)+'deg)">'+text+'</span>',iconSize:[p.width,18],iconAnchor:[p.width/2,9]})}).addTo(ui.labels);}
+
+  /** Empties every panel that shows results. The file, its preview and the report object stay. */
+  function resetResultPanels() {
+    removePin();
+    hideNotice();
+    $('coordinates').hidden = true;
+    $('candidates').hidden = true;
+    $('candidateList').replaceChildren();
+    $('captureSummary').hidden = true;
+    $('captureSummary').replaceChildren();
+    $('metadataBody').replaceChildren();
+    $('metadataTable').hidden = true;
+    $('metadataEmpty').hidden = false;
+    setText('metadataEmpty', 'Image metadata will appear here.');
+    setText('tagCount', '0 tags');
+    $('hashPanel').hidden = true;
+    setText('fileHash', '');
+    $('copyCoordinates').disabled = true;
+    $('exportReport').disabled = true;
+    setText('resultEmpty', 'Coordinates appear here when the file records a valid GPS position.');
+    $('resultEmpty').hidden = false;
+    setText('mapTitle', 'Embedded GPS');
+    setText('mapSubtitle', 'Select an image to locate its GPS tags.');
+    setText('coverageBadge', 'OFFLINE MAP');
+    setText('coverageNote', 'World outlines are included. Street detail is bundled for the Gainesville and University of Florida area.');
+    for (const id of ['latitude', 'longitude', 'latitudeFx', 'longitudeFx']) setText(id, '');
   }
-  function ensureLocal(){if(ui.local)return;ui.local=true;const m=ui.map,renderer=L.canvas({pane:'localBase'});L.geoJSON(mapData,{renderer,pane:'localBase',style:featureStyle,filter:f=>['green','parking','paved','water','building'].includes(f.properties.kind),interactive:false}).addTo(m);ui.casing=L.geoJSON(mapData,{renderer,pane:'localBase',style:f=>{const s=featureStyle(f);return {...s,color:'#100a0f',weight:s.weight+2.8,dashArray:null};},filter:f=>f.properties.kind==='road'&&!['footway','path','cycleway','steps','pedestrian'].includes(f.properties.highway),interactive:false}).addTo(m);ui.roads=L.geoJSON(mapData,{renderer,pane:'localBase',style:featureStyle,filter:f=>f.properties.kind==='road',interactive:false}).addTo(m);const r=L.canvas({pane:'localDetails'});ui.details=L.geoJSON(mapData,{renderer:r,pane:'localDetails',interactive:false,filter:f=>['barrier','tree','furniture','bus','poi'].includes(f.properties.kind),style:featureStyle,pointToLayer:(f,ll)=>L.circleMarker(ll,{renderer:r,pane:'localDetails',radius:f.properties.kind==='tree'?2.8:1.5,color:'#ab5b7c',weight:.5,fillColor:'#48253a',fillOpacity:.7,interactive:false})});}
-  function mapLocation(p){
-    clearMarker();if(Math.abs(p.latitude)>Core.MAX_MERCATOR_LAT){notice('GPS found near a pole','The coordinates are valid, but this map projection cannot accurately display latitudes above 85.051°. The exact coordinates remain available in the results.','⌖');$('mapSubtitle').textContent='Coordinate lies outside the map projection range.';$('coverageBadge').textContent='GPS / POLAR';log('Coordinates are outside the Web Mercator display range.','warning');return;}
-    const regional=Core.inBounds(p,mapMeta.bounds);if(regional)ensureLocal();ui.map.setView([p.latitude,p.longitude],regional?18:5,{animate:false});refreshMap();
-    ui.pin=L.marker([p.latitude,p.longitude],{title:'Embedded image GPS',zIndexOffset:700,icon:L.divIcon({className:'gps-marker',html:'<div class="gps-pin"><span class="gps-pin-tail"></span><span class="gps-pin-circle">⌖</span><span class="gps-point"></span></div>',iconSize:[47,62],iconAnchor:[21,58]})}).addTo(ui.map);
-    if(p.accuracyMeters!==null)ui.accuracy=L.circle([p.latitude,p.longitude],{radius:p.accuracyMeters,color:'#ec77a1',weight:1,fillColor:'#c64d7e',fillOpacity:.07,interactive:false}).addTo(ui.map);
-    $('mapNotice').hidden=true;$('recenter').disabled=false;$('mapCoordinate').textContent=p.latitude.toFixed(8)+', '+p.longitude.toFixed(8);$('mapCoordinate').hidden=false;$('mapTitle').textContent='Embedded GPS';$('mapSubtitle').textContent=regional?'Detailed offline street geometry · Gainesville / UF':'Exact GPS point on an offline world overview.';$('coverageBadge').textContent=regional?'OFFLINE / STREETS':'OFFLINE / OVERVIEW';$('coverageNote').textContent=regional?mapMeta.features.toLocaleString()+' local map features. Coordinates come from the image.':'Detailed offline streets are not bundled for this location. The marker uses the exact embedded coordinates.';log(regional?'GPS marker placed on the local street map.':'GPS marker placed on the offline world overview.','ok');
+
+  function revokePreview() {
+    if (state.previewURL) {URL.revokeObjectURL(state.previewURL); state.previewURL = null;}
+    $('preview').removeAttribute('src');
+    $('preview').hidden = true;
+    $('previewFallback').hidden = true;
+    $('bay').style.removeProperty('--ar');
   }
-  function initializeMap(){const m=ui.map=L.map('map',{zoomControl:false,preferCanvas:true,minZoom:1,maxZoom:20,zoomSnap:.1,zoomDelta:.5,worldCopyJump:true,fadeAnimation:false}).setView([20,0],2.2);for(const [name,z] of [['worldBase',100],['localBase',150],['localDetails',180],['mapLabels',450]])m.createPane(name).style.zIndex=z;L.geoJSON(window.TRACE_WORLD_DATA,{renderer:L.canvas({pane:'worldBase'}),pane:'worldBase',style:{color:'#6e354f',weight:.7,fillColor:'#281321',fillOpacity:.95},interactive:false}).addTo(m);ui.labels=L.layerGroup().addTo(m);m.attributionControl.addAttribution('World: Natural Earth · Streets: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>');L.control.scale({imperial:false,position:'bottomright',maxWidth:90}).addTo(m);m.on('moveend zoomend',()=>{clearTimeout(ui.refreshTimer);ui.refreshTimer=setTimeout(refreshMap,90);});refreshMap();new ResizeObserver(()=>m.invalidateSize({pan:false})).observe($('map'));}
-  $('fileInput').addEventListener('change',()=>analyze($('fileInput').files[0]));$('dropZone').addEventListener('keydown',e=>{if(e.key==='Enter'||e.code==='Space'){e.preventDefault();$('fileInput').click();}});
-  for(const event of ['dragenter','dragover'])$('dropZone').addEventListener(event,e=>{e.preventDefault();$('dropZone').classList.add('dragging');});for(const event of ['dragleave','drop'])$('dropZone').addEventListener(event,e=>{e.preventDefault();$('dropZone').classList.remove('dragging');});$('dropZone').addEventListener('drop',e=>{const files=e.dataTransfer?.files;if(files?.length){if(files.length>1)toast('Analyzing the first image. Select images one at a time.');analyze(files[0]);}});document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',e=>e.preventDefault());
-  $('clear').addEventListener('click',clearImage);$('tagSearch').addEventListener('input',renderTags);$('zoomIn').addEventListener('click',()=>ui.map.zoomIn());$('zoomOut').addEventListener('click',()=>ui.map.zoomOut());$('recenter').addEventListener('click',()=>{if(ui.report?.location)mapLocation(ui.report.location);});
-  $('copyCoordinates').addEventListener('click',async()=>{if(!ui.report?.location)return;const p=ui.report.location,text=p.latitude.toFixed(8)+', '+p.longitude.toFixed(8);try{await navigator.clipboard.writeText(text);toast('Coordinates copied.');}catch{toast('Copy the coordinates from the results: '+text);}});
-  $('exportReport').addEventListener('click',()=>{if(!ui.report)return;const blob=new Blob([JSON.stringify(ui.report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=ui.report.file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,90)+'.metadata.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
-  $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('Use your browser’s fullscreen control.');}});
-  initializeMap();
+
+  function showPreview(file, formatName) {
+    revokePreview();
+    $('previewFallback').hidden = false;
+    state.previewURL = URL.createObjectURL(new Blob([file], {type: SAFE_MIME[formatName]}));
+    $('preview').onload = () => {
+      const img = $('preview');
+      if (img.naturalWidth && img.naturalHeight) $('bay').style.setProperty('--ar', Math.min(3.5, Math.max(.4, img.naturalWidth / img.naturalHeight)).toFixed(4));
+      img.hidden = false;
+      $('previewFallback').hidden = true;
+      stage.resize();
+    };
+    $('preview').onerror = () => {$('preview').hidden = true; $('previewFallback').hidden = false;};
+    $('preview').src = state.previewURL;
+  }
+
+  /** A file was chosen: seat it and run the cheap checks. The metadata is read only when Analyze is pressed. */
+  async function selectFile(file) {
+    if (!file) return;
+    cancelAll('select');
+    const gen = generation;
+    state.file = file;
+    state.canAnalyze = false;
+    state.report = null;
+    state.error = null;
+    state.startedAt = 0;
+    state.analysis = 'selected';
+    resetResultPanels();
+    resetLog();
+    setText('elapsed', '—');
+    revokePreview();
+    $('fileCard').hidden = false;
+    setText('fileName', file.name);
+    setText('fileDetails', (file.size / 1024 / 1024).toFixed(2) + ' MiB');
+    document.body.dataset.presentation = 'idle';
+    setStatus('Checking image', 'Looking at the file signature.', 'neutral');
+    log('Selected ' + file.name + '.');
+
+    const reject = (code, message) => {
+      const error = Object.assign(new Error(message), {code});
+      stage.fail();
+      $('previewFallback').hidden = false;
+      presentFailure(error, {gen});
+    };
+    if (!file.size) return reject('invalid_file', 'The selected file is empty.');
+    if (file.size > Core.MAX_FILE_BYTES) return reject('file_too_large', 'The image exceeds the 64 MiB limit. Choose a smaller original file.');
+    let head;
+    try {head = new Uint8Array(await file.slice(0, FILE_HEAD_BYTES).arrayBuffer());}
+    catch {if (!stale(gen)) reject('read_error', 'The file could not be opened.'); return;}
+    if (stale(gen)) return;
+    const detected = Core.detectFormat(head);
+    if (!detected) return reject('unsupported_format', 'Unsupported file format. Use JPEG, PNG, TIFF, WebP, HEIC, or AVIF.');
+
+    state.canAnalyze = true;
+    setText('fileDetails', detected.toUpperCase() + ' · ' + (file.size / 1024 / 1024).toFixed(2) + ' MiB');
+    showPreview(file, detected);
+    stage.ready();
+    setText('mapSubtitle', 'Select Analyze to read this image.');
+    setStatus('Image ready', 'Select Analyze to read its embedded metadata. Nothing leaves this device.', 'neutral');
+    announce('Selected ' + file.name + '. Select Analyze to read its metadata.');
+    syncControls();
+    $('analyze').focus({preventScroll: true});
+  }
+
+  function startAnalysis() {
+    if (!state.file || !state.canAnalyze || isBusy()) return;
+    unlockAudio();                                   // from this gesture, never awaited
+    cancelAll('analyze');
+    resetResultPanels();
+    resetLog();
+    const gen = generation;
+    state.report = null;
+    state.error = null;
+    state.analysis = 'reading';
+    state.startedAt = performance.now();
+    state.heldLog = [];
+    state.heldElapsed = null;
+    setText('elapsed', '…');
+    document.body.dataset.presentation = 'idle';
+    const session = controller.start({gen});
+    syncControls();
+    $('skip').focus({preventScroll: true});
+    announce('Reading image.');
+    runAnalysis(gen, session);
+  }
+
+  /** Shows the existing result again. The file is not read or parsed a second time. */
+  function replay() {
+    if (!state.report || isBusy()) return;
+    unlockAudio();
+    cancelAll('replay');
+    resetResultPanels();
+    const gen = generation;
+    $('exportReport').disabled = true;
+    controller.replay({gen, report: state.report});
+    syncControls();
+    $('skip').focus({preventScroll: true});
+  }
+
+  function skip() {
+    if (controller.skip()) syncControls();
+  }
+
+  function clearAll() {
+    cancelAll('clear');
+    state.file = null;
+    state.canAnalyze = false;
+    state.report = null;
+    state.error = null;
+    state.startedAt = 0;
+    state.analysis = 'idle';
+    state.clean = false;
+    resetResultPanels();
+    revokePreview();
+    $('fileInput').value = '';
+    $('fileCard').hidden = true;
+    resetLog('Ready to read a local image.');
+    setText('elapsed', '—');
+    stage.reset();
+    $('bay').dataset.clean = 'false';
+    $('cleanView').setAttribute('aria-pressed', 'false');
+    setStatus('Waiting for an image', 'Your file stays on this device.', 'neutral');
+    map.closePopup();
+    map.setView([20, 0], 2.2, {animate: false});
+    document.body.dataset.presentation = 'idle';
+    syncControls();
+    announce('Cleared. Waiting for an image.');
+  }
+
+  function chooseImage() {
+    $('fileInput').value = '';       // so choosing the same file again still fires a change event
+    $('fileInput').click();
+  }
+
+  function recenter() {
+    const report = state.report;
+    if (!report || !report.location || controller.running) return;
+    director.recenter(report.location, {animate: effectiveMotion() !== 'reduced'});
+  }
+
+  async function copyCoordinates() {
+    const report = state.report;
+    if (!report || !report.location) return;
+    const text = pair(report.location);
+    try {await navigator.clipboard.writeText(text); toast('Coordinates copied.');}
+    catch {toast('Copy the coordinates from the results: ' + text);}
+  }
+
+  function exportReport() {
+    const report = state.report;
+    if (!report) return;
+    const blob = new Blob([JSON.stringify(report, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = report.file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 90) + '.metadata.json';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function toggleClean() {
+    state.clean = !state.clean;
+    $('bay').dataset.clean = String(state.clean);
+    $('cleanView').setAttribute('aria-pressed', String(state.clean));
+  }
+
+  /* ------------------------------------------------------------- control state -- */
+
+  function isBusy() {return state.analysis === 'reading' || controller.running;}
+
+  function syncControls() {
+    const hasFile = !!state.file, busy = isBusy(), located = !!(state.report && state.report.location);
+    const before = document.activeElement;
+    $('analyze').disabled = !(hasFile && state.canAnalyze) || busy;
+    $('skip').disabled = !controller.running;
+    setText('skipLabel', state.waiting || !state.report && state.analysis === 'reading' ? 'Show result' : 'Skip animation');
+    $('changeImage').disabled = !hasFile;
+    $('replay').disabled = !(state.report && !busy);
+    $('cleanView').disabled = !hasFile;
+    $('clear').disabled = !hasFile;
+    $('recenter').disabled = !(located && pres.pin) || controller.running;
+    document.body.setAttribute('aria-busy', String(busy));
+    document.body.dataset.analysis = state.analysis;
+    // A focused control that has just been disabled would strand keyboard users: move focus on.
+    if (before && before.disabled) {
+      const next = ['replay', 'analyze', 'changeImage'].map($).find(b => !b.disabled);
+      if (next) next.focus({preventScroll: true});
+    }
+  }
+
+  /* -------------------------------------------------------------------- events -- */
+
+  $('fileInput').addEventListener('change', () => selectFile($('fileInput').files[0]));
+  $('chooseButton').addEventListener('click', e => {e.stopPropagation(); chooseImage();});
+  $('bay').addEventListener('click', () => {if (!state.file) chooseImage();});
+  for (const type of ['dragenter', 'dragover']) $('bay').addEventListener(type, e => {e.preventDefault(); $('bay').classList.add('dragging');});
+  for (const type of ['dragleave', 'drop']) $('bay').addEventListener(type, e => {e.preventDefault(); $('bay').classList.remove('dragging');});
+  $('bay').addEventListener('drop', e => {
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    if (files.length > 1) toast('Analyzing the first image. Select images one at a time.');
+    selectFile(files[0]);
+  });
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => e.preventDefault());
+
+  $('analyze').addEventListener('click', startAnalysis);
+  $('skip').addEventListener('click', skip);
+  $('changeImage').addEventListener('click', chooseImage);
+  $('replay').addEventListener('click', replay);
+  $('cleanView').addEventListener('click', toggleClean);
+  $('clear').addEventListener('click', clearAll);
+  $('tagSearch').addEventListener('input', () => renderTags({animate: false}));
+  $('zoomIn').addEventListener('click', () => {director.cancel('interrupted'); map.zoomIn();});
+  $('zoomOut').addEventListener('click', () => {director.cancel('interrupted'); map.zoomOut();});
+  $('recenter').addEventListener('click', recenter);
+  $('copyCoordinates').addEventListener('click', copyCoordinates);
+  $('exportReport').addEventListener('click', exportReport);
+  $('fullscreen').addEventListener('click', async () => {
+    try {if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen();}
+    catch {toast('Use your browser’s fullscreen control.');}
+  });
+
+  $('soundToggle').addEventListener('click', onSoundToggle);
+  $('volume').addEventListener('input', () => {
+    settings.volume = Number($('volume').value);
+    audio.setVolume(settings.volume / 100);
+  });
+  $('volume').addEventListener('change', () => {
+    saveSettings();
+    if (settings.sound) unlockAudio().then(status => {if (status === 'running') play('tick', {index: 2});});
+  });
+  $('motion').addEventListener('change', () => {
+    settings.motion = $('motion').value;
+    saveSettings();
+    applyMotion();
+  });
+  if (reducedQuery) {
+    const onChange = () => {if (!settings.motion) applyMotion();};
+    if (reducedQuery.addEventListener) reducedQuery.addEventListener('change', onChange);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && controller.running) {e.preventDefault(); skip();}
+  });
+  // A hidden tab cannot show the animation, so finish it and quieten the sound.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    audio.stopAll(0.1);
+    if (controller.running) controller.skip();
+  });
+  window.addEventListener('resize', () => stage.resize());
+
+  /* ---------------------------------------------------------- read-only diagnostics -- */
+
+  Object.defineProperty(window, 'MetaTrace', {
+    value: Object.freeze({
+      /** A plain-data snapshot for tests and support. It cannot change anything. */
+      snapshot() {
+        const c = map.getCenter();
+        return {
+          generation,
+          analysis: state.analysis,
+          presentation: controller.state,
+          running: controller.running,
+          waiting: state.waiting,
+          motion: effectiveMotion(),
+          clean: state.clean,
+          file: state.file ? {name: state.file.name, size: state.file.size} : null,
+          status: state.report ? state.report.status : null,
+          location: state.report && state.report.location ? {latitude: state.report.location.latitude, longitude: state.report.location.longitude} : null,
+          camera: {lat: c.lat, lng: c.lng, zoom: map.getZoom()},
+          flying: director.flying,
+          flightId: director.flightId,
+          pin: pres.pin ? {lat: pres.pin.getLatLng().lat, lng: pres.pin.getLatLng().lng, popupOpen: pres.pin.isPopupOpen()} : null,
+          accuracy: pres.accuracy ? {lat: pres.accuracy.getLatLng().lat, lng: pres.accuracy.getLatLng().lng, radius: pres.accuracy.getRadius()} : null,
+          mapNotice: $('mapNotice').hidden ? null : $('mapNoticeTitle').textContent,
+          coverage: $('coverageBadge').textContent,
+          stagePhase: stage.phase,
+          stageActive: stage.active,
+          audio: audio.snapshot(),
+          layer: {...baseLayer.stats}
+        };
+      }
+    })
+  });
+
+  /* ---------------------------------------------------------------------- start -- */
+
+  loadSettings();
+  audio.setEnabled(settings.sound);
+  audio.setVolume(settings.volume / 100);
+  $('volume').value = String(settings.volume);
+  applyMotion();
+  syncSoundChip();
+  syncControls();
+  document.body.dataset.presentation = 'idle';
 })();
 </script>
 </body></html>
