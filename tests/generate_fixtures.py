@@ -44,7 +44,7 @@ def with_gps(name,g,img=big):img.save(p/name,quality=88,exif=metadata(g))
 # Gainesville, with a recorded horizontal positioning error: finishes on real street geometry.
 with_gps('sample-street.jpg',gps(hpe=12.5))
 # The handoff's own example. It lies outside the bundled street data, so it finishes on the world overview.
-with_gps('handoff-overview.jpg',gps(lat=(34,12,16.3),lon=(89,16,59.6),lonref='E',alt=47.46,hpe=12.5))
+with_gps('handoff-overview.jpg',gps(lat=(34,12,16.2972),lon=(89,16,59.6532),lonref='E',alt=47.46,hpe=12.5))
 # Longitude wrapping: both sit about 11 m from the antimeridian, on opposite sides.
 with_gps('gps-antimeridian-east.jpg',gps(lat=(17,45,0),lon=(179,59,59.64),latref='S',lonref='E'),image)
 with_gps('gps-antimeridian-west.jpg',gps(lat=(17,45,0),lon=(179,59,59.64),latref='S',lonref='W'),image)

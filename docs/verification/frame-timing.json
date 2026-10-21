@@ -1,0 +1,18 @@
+{
+  "environment": "headless Chromium, software rasterisation, 1440x900",
+  "fullSequenceMs": 6233,
+  "phaseMs": {
+    "acquire": 283,
+    "scan": 904,
+    "reveal": 1001,
+    "resolve": 602,
+    "fly": 2934,
+    "lock": 509
+  },
+  "flightFrames": 139,
+  "frameIntervalMs": {
+    "median": 16.7,
+    "p95": 33.4,
+    "worst": 66.7
+  }
+}
