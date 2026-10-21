@@ -17,9 +17,13 @@ Playwright and Chromium are development tools only. The app has no runtime depen
 
 ## Result
 
-The final full serial run (`node tests/run.cjs`, one file after another, with `META_TRACE_ARTIFACTS` set) finished with
-**173 tests, 173 passed, 0 failed, 0 skipped, in 352 s**. One more test (the fullscreen button) was added afterwards; it
-passed on its own, and the full run was repeated on the final commit (see the end of this file).
+The run that produced the screenshots and timings in `docs/verification/` (`node tests/run.cjs` with
+`META_TRACE_ARTIFACTS` set) finished with **173 tests, 173 passed, 0 failed, 0 skipped, in 352 s**. One test (the
+fullscreen button) was added after it. The suite was then run again on the committed tree, from a fresh `git clone` of it
+(so nothing depended on an uncommitted file): **174 tests, 174 passed, 0 failed, 0 skipped, in 359 s**. That clone was at
+commit `d291330` (hashes are those of the delivered patch series); everything committed after it changes documentation
+only. Rebuilding the HTML from the committed sources in that clone reproduced `Qwen_Map_Console.html` and
+`BUILD_INFO.json` byte for byte (SHA-256 `52fd328a…`, 4,227,641 bytes).
 
 | File | Tests | What it covers |
 | --- | ---: | --- |

@@ -171,8 +171,8 @@ photograph's origin; nothing is inferred about people, residences or scene conte
 
 ## Validation
 
-See `docs/VERIFICATION.md`. In short: the final serial run was 173 of 173 passing, none skipped, using the real built
-page in headless Chromium 141, plus the unchanged 25 baseline tests. It has **not** been run on Windows, Edge, Firefox,
+See `docs/VERIFICATION.md`. In short: the final serial run, from a fresh clone of the committed tree, was 174 of 174 passing with none skipped,
+using the real built page in headless Chromium 141 (this includes the unchanged 25 baseline tests). It has **not** been run on Windows, Edge, Firefox,
 Safari, a GPU or a headed browser, and the sounds have been **measured, not heard**.
 
 ```bash
