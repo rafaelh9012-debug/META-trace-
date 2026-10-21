@@ -1,0 +1,1 @@
+All images are generated colored rectangles containing synthetic metadata. Coordinates are test values, not the location of a photographed person. Run generate_fixtures.py with Pillow only when regenerating these files. Running the application requires no Python packages.

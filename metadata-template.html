@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Read embedded image metadata and GPS coordinates locally.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Crimson / Image Metadata</title>
+<style>/*__LEAFLET_CSS__*/</style><style>/*__METADATA_CSS__*/</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="brand-symbol">⌖</span>CRIMSON <span class="slash">/</span><b>IMAGE METADATA</b></div><div class="privacy"><span></span>LOCAL PROCESSING</div><button id="fullscreen" class="icon-button" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button></header>
+<main class="workspace">
+  <aside class="sidebar">
+    <section class="upload-section">
+      <span class="eyebrow">READ WHAT THE FILE CONTAINS</span><h1>A location, if it’s there.</h1><p class="lead">Open an image to inspect its metadata and map its embedded GPS coordinates.</p>
+      <label id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose an image or drop one here"><input id="fileInput" type="file" accept=".jpg,.jpeg,.png,.tif,.tiff,.webp,.heic,.heif,.avif"><span class="upload-icon">↥</span><b>Choose an image</b><span>or drag and drop it here</span></label>
+      <p class="supported">JPEG · PNG · TIFF · WebP · HEIC/AVIF* <span>64 MiB max</span></p>
+      <p class="format-note">*HEIC/AVIF compatibility depends on the metadata variant.</p>
+      <div id="fileCard" class="file-card" hidden><div class="preview-wrap"><img id="preview" alt="Selected image preview"><span id="previewFallback" hidden>IMAGE</span></div><div class="file-info"><b id="fileName"></b><span id="fileDetails"></span></div><button id="clear" class="icon-button" aria-label="Clear image" title="Clear">×</button></div>
+    </section>
+    <section class="result-section">
+      <div id="status" class="status-banner neutral" role="status" aria-live="polite"><span id="statusIcon">○</span><div><h2 id="statusTitle">Waiting for an image</h2><p id="statusMessage">Your file stays on this device.</p></div></div>
+      <div id="coordinates" class="coordinates" hidden><div class="coordinate-row"><span>LATITUDE</span><b id="latitude"></b></div><p id="latitudeDMS"></p><div class="coordinate-row"><span>LONGITUDE</span><b id="longitude"></b></div><p id="longitudeDMS"></p><div class="coordinate-extras"><div><span>ELEVATION</span><b id="altitude">Not recorded</b></div><div><span>POSITION ERROR</span><b id="accuracy">Not recorded</b></div></div></div>
+      <div id="captureSummary" class="capture-summary" hidden></div>
+      <div class="result-actions"><button id="copyCoordinates" disabled>Copy coordinates</button><button id="exportReport" disabled>Export JSON ↗</button></div>
+      <p class="evidence-note">GPS tags can be edited. Embedded coordinates are a record in the file, not proof of the camera’s location.</p>
+    </section>
+    <section class="metadata-section"><div class="section-heading"><h2>Embedded metadata</h2><span id="tagCount">0 tags</span></div><input id="tagSearch" class="tag-search" type="search" placeholder="Filter tags…" aria-label="Filter metadata tags"><div id="metadataEmpty" class="empty-table">Image metadata will appear here.</div><div class="metadata-table-wrap"><table id="metadataTable" hidden><thead><tr><th>Tag</th><th>Value</th></tr></thead><tbody id="metadataBody"></tbody></table></div><div id="hashPanel" class="hash-panel" hidden><span>FILE SHA-256</span><code id="fileHash"></code></div></section>
+    <section class="log-section"><div class="section-heading"><h2>Analysis log</h2><span id="elapsed">—</span></div><div id="analysisLog" class="analysis-log" role="log" aria-live="off"><div class="log-info">Ready to read a local image.</div></div></section>
+    <footer class="sidebar-footer">Offline metadata inspection · no model or API key needed</footer>
+  </aside>
+  <section class="map-panel" aria-label="GPS map">
+    <div id="map" role="img" aria-label="Offline map for embedded GPS coordinates"></div>
+    <div class="map-heading"><div><span class="eyebrow">COORDINATE VIEW</span><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE / WORLD</span></div>
+    <div id="mapNotice" class="map-notice"><span id="mapNoticeIcon">⌖</span><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
+    <div class="map-controls"><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="recenter" aria-label="Recenter GPS marker" disabled>⌖</button></div>
+    <div id="coverageNote" class="coverage-note">World outlines are included. Detailed streets are bundled for the Gainesville / UF area.</div>
+    <div id="mapCoordinate" class="map-coordinate" hidden></div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status"></div>
+<script>/*__LEAFLET_JS__*/</script><script>/*__EXIFR_JS__*/</script><script>/*__MAP_DATA__*/</script><script>/*__METADATA_CORE__*/</script><script>/*__METADATA_PARSER__*/</script><script>/*__WORKER_SOURCE__*/</script><script>/*__MAP_UTILS__*/</script><script>/*__METADATA_APP__*/</script>
+</body></html>

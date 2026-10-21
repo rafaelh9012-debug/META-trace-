@@ -1,35 +1,56 @@
-Map sources and documentation
-=============================
-This version uses no map provider APIs or live tiles. All map data, labels,
-styles, rendering code and UI assets are included locally in the download.
+Crimson Image Metadata 2.0.0 — sources and licensing
+==================================================
+The application processes selected files locally. All runtime libraries,
+maps and styles are included in the HTML. No API keys or live tiles are used.
 
-Bundled street/building geometry: copyright OpenStreetMap contributors,
-available under the Open Database License (ODbL).
-https://www.openstreetmap.org/copyright
-https://opendatacommons.org/licenses/odbl/1-0/
-Public map extracts fetched for this demo, 2026-10-16, included as part-0.osm
-through part-3.osm in the data directory, in the following order:
-https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.638,-82.3375,29.6485
-https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.638,-82.324,29.6485
-https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.6485,-82.3375,29.659
-https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.6485,-82.324,29.659
-Derived geometry is included in data/map-data.json and inline in the HTML,
-including building/courtyard rings, road/path lines, parking, land cover,
-water, trees, street furniture, bus stops and public points of interest.
-The label selection is generated from named features in these extracts.
-The geometry and label datasets remain available under the above license.
+METADATA PARSER
+exifr 7.1.3, full UMD build, MIT license.
+License: vendor/EXIFR_LICENSE.txt
+Unmodified pinned source: vendor/exifr-7.1.3.umd.js
+https://github.com/MikeKovarik/exifr
+https://unpkg.com/exifr@7.1.3/dist/full.umd.js
+SHA-256: 2bd05117781c12ddd965dee846de3b3f986b5ecb4c7f6a78f2d2ec1db7c65ae7
+The build removes the source-map URL comment only from the inlined copy.
 
-Public named property reference (not identification of a photo or resident):
-https://www.courtyardsgainesville.com/location/
-https://www.courtyardsgainesville.com/contact/
-
-Leaflet 1.9.4: BSD-2-Clause, license in LEAFLET_LICENSE.txt.
+MAP RENDERER
+Leaflet 1.9.4, BSD-2-Clause, license in LEAFLET_LICENSE.txt.
 https://leafletjs.com/
 https://github.com/Leaflet/Leaflet/releases/tag/v1.9.4
 https://unpkg.com/leaflet@1.9.4/dist/leaflet.js
 https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
 
-Coordinates/elevation: supplied by the user; not geocoded or measured.
-Model initialization, EXIF operations, checksums, tool states and contact
-analysis in the terminal are fictional display effects. No model or security
-tool is bundled, downloaded or executed by the program.
+WORLD OVERVIEW
+Natural Earth 1:110m Admin 0 country geometry, public domain.
+https://www.naturalearthdata.com/about/terms-of-use/
+https://github.com/nvkelso/natural-earth-vector
+Downloaded 2026-10-21 from:
+https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson
+Cached original: data/world-source.geojson
+Derived geometry: data/world-data.json; label candidates: data/world-labels.json.
+Coordinates are rounded to four decimal places and unused properties removed.
+177 country features are included. This is an overview, not global street data.
+
+DETAILED LOCAL STREETS
+Copyright OpenStreetMap contributors, Open Database License (ODbL).
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+Public extracts fetched for the preceding version on 2026-10-16 are retained
+as data/part-0.osm through data/part-3.osm, in this order:
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.638,-82.3375,29.6485
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.638,-82.324,29.6485
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.351,29.6485,-82.3375,29.659
+https://api.openstreetmap.org/api/0.6/map?bbox=-82.3375,29.6485,-82.324,29.659
+Derived ODbL datasets: data/map-data.json, map-labels.json and map-meta.json.
+Regenerator: map_builder.py. The derived data contains 12,671 public map
+features and 1,657 label candidates, including streets, buildings, paths,
+parking, land cover, water and points of interest. Coverage is limited to
+longitude -82.351 to -82.324, latitude 29.638 to 29.659.
+
+TEST IMAGES AND RESULTS
+The tiny color images in tests/fixtures are synthetic, created by
+tests/generate_fixtures.py with Pillow and deliberately chosen GPS values.
+They are parser test inputs, not user photographs or location evidence.
+Runtime coordinates come only from validated embedded metadata in the image
+the user selects. No fixed example location is used when GPS is missing.
+SHA-256 and analysis logs are calculated during analysis; no model, packet
+capture, identity matching or visual geolocation system is included.

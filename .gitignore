@@ -1,0 +1,14 @@
+# Local tooling and generated cache
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+# Local image inputs, exports and credentials
+uploads/
+input-images/
+reports/
+.env
+.env.*
+!.env.example

@@ -1,97 +1,80 @@
-QWEN / CRIMSON MAP CONSOLE
-==================
-A local terminal-and-map interface with a crimson vector map.
+CRIMSON IMAGE METADATA — REAL EXTRACTION EDITION
 
-QUICKEST START ON WINDOWS
-1. Extract the entire ZIP into a folder.
+START ON WINDOWS
+1. Extract the complete ZIP to a new folder.
 2. Double-click START_WINDOWS.bat.
-3. The browser opens and starts the sequence automatically.
+3. Click Choose an image, or drop one into the upload area.
 
-The launcher uses Python if available. Without Python, it opens the standalone
-HTML file in your browser instead. Nothing needs to be installed. You can also
-open Qwen_Map_Console.html directly; it starts automatically. On macOS/Linux, open
-the HTML file or run: python3 RUN_CONSOLE.py
+You can also open Qwen_Map_Console.html directly. Its legacy filename is kept
+for compatibility; the interface is now a real image-metadata inspector.
+On macOS/Linux open that HTML file or run: python3 RUN_CONSOLE.py
+No Python packages, model downloads, account, map key, or internet connection
+are required to use the application. The optional Python launcher uses only
+the standard library and serves the folder on 127.0.0.1.
 
-WHAT YOU WILL SEE
-- The first three Bash commands type character by character, with varied
-  timing, pauses, typos, backspaces and corrected text.
-- Qwen initialization starts after those three commands, followed by the
-  automatic command stream in a Windows Terminal style window.
-- Qwen-3.8-27b-obliterated initialization and a progress bar, all for show.
-- The metadata commands from the prior artwork, including a missing-file
-  error, find command, corrected path, jq pipelines and checksum text.
-- The terminal moves to the left while a black-and-red map opens on the right.
-- Coordinates type into the map field and the map zooms to the supplied point.
-- A question-mark Find My style marker appears.
-- Bash returns to the foreground, displays the coordinates and elevation,
-  and concludes: identity: inconclusive / user not in contacts.
-- Npcap, Wireshark and Suricata tabs have illustrative local display buffers.
+WHAT IT ACTUALLY DOES
+- Reads the selected image's bytes locally, validates its signature, and parses
+  EXIF/GPS/XMP/IPTC metadata with the bundled exifr 7.1.3 parser.
+- Computes the selected file's real SHA-256 when browser crypto is available.
+- Displays readable metadata tags, camera/time fields when recorded, valid GPS
+  coordinates, elevation and horizontal position error when recorded.
+- Maps only a validated embedded coordinate pair. It never defaults to the old
+  Courtyards example or assumes a location from a filename or image content.
+- Shows No location metadata found if GPS coordinates are not embedded.
+- Distinguishes missing, incomplete, invalid, conflicting and unreadable data.
+- Clears an earlier GPS marker when a new image is selected or the image cleared.
+- Copies decimal coordinates and exports a JSON metadata report on request.
 
-OFFLINE MAP / NO API KEYS
-This version uses only the bundled local street and building geometry.
-No account, API key, payment, internet connection or website is required.
-Online map layers and API-key settings have been removed entirely.
-The app's network policy also blocks external map or data connections.
+SUPPORTED FORMATS
+JPEG, PNG, TIFF and WebP EXIF/GPS are covered by synthetic-image tests.
+XMP-only GPS in a JPEG is also tested. WebP EXIF/XMP chunks are handled by a
+bounded RIFF reader before passing EXIF to the parser.
+HEIC/AVIF are best effort. Some newer phone container variants are not
+supported by the bundled parser. An unreadable variant produces a parse-error
+message, not a false claim that GPS is absent. Preview support also depends
+on the browser; metadata can be readable even if the thumbnail cannot display.
+RAW camera files, GIF/BMP, SVG, sidecar files and videos are not supported.
+Maximum input: 64 MiB. Images are analyzed one at a time.
 
-EXPANDED MAP DETAIL
-The dataset includes 12,671 geometry features and 1,657 label candidates:
-- 2,323 building footprints, including inner courtyards where mapped
-- 6,284 road, footpath and sidewalk segments
-- 407 parking areas and individual mapped parking spaces
-- 338 green spaces, 39 water features and 114 paved areas
-- 1,038 trees, 1,763 benches/cycle-parking/crossing/other small map features
-- 123 bus stops, 197 points of interest and 45 fences/walls/barriers
-Labels include street names, building names, public businesses and parking.
-Only relevant labels appear at each zoom level; overlapping labels are hidden.
-Trees and other fine detail appear from zoom 17.5 onward.
-Click Map details or the gear to toggle street names, place names or fine detail.
+LOCATION RESULTS
+Embedded GPS tags are editable records, not proof of where a photograph was
+actually taken. The app does not identify people or infer their residences.
+It does not inspect scene content, use AI to guess a location, or recover
+metadata removed before the file was received. IPTC city/country text alone
+is not converted to an exact coordinate.
+Use the original image where possible; a screenshot or a file exported through
+another app may have different metadata than the original.
 
-Coverage: the local Gainesville/UF neighborhood between longitude -82.351
-and -82.324, latitude 29.638 and 29.659. Panning stays in this bundled area;
-this is a detailed local map, not an offline map of the whole world.
-Geometry detail depends on what is present in the public source dataset.
+MAPS
+The dark red map works offline and uses no external tile requests.
+- A Natural Earth overview supports embedded GPS anywhere the Web Mercator
+  projection can display (approximately 85.051 degrees N to 85.051 degrees S).
+- Detailed OpenStreetMap street/building geometry is bundled for part of the
+  Gainesville/UF area: longitude -82.351 to -82.324; latitude 29.638 to 29.659.
+- Outside that local area the exact coordinate gets a pin on the world overview,
+  with an explicit note that detailed streets are not included for that place.
+- Valid polar coordinates remain visible in the results, but no misleading pin
+  is placed outside the map's projection range.
+- Position-error circles are shown only when a valid GPSHPositioningError tag
+  records a value in metres. They are not fabricated accuracy estimates.
 
-COORDINATES
-Latitude:  29 degrees 38 minutes 55.87 seconds N = 29.6488527778
-Longitude: 82 degrees 20 minutes 16.40 seconds W = -82.3378888889
-Elevation: 47.46 m (user supplied, not measured by the app)
-Marker placement: exact supplied coordinates, within the public mapped
-Courtyards Building A footprint. No apartment number or occupant is inferred.
+PRIVACY AND OUTPUT
+Your image is not uploaded. It is not added to this app's folder, a server, a
+map service or an AI provider. The app's connection policy blocks external
+network requests. Preview data uses temporary local blob URLs.
+The JSON report is saved only when you click Export JSON; it can contain GPS
+and other metadata from your image, so inspect it before sharing.
+Clear resets the current results. No photo history is stored.
+A fallback parser runs locally if a browser worker cannot start.
 
-CONTROLS
-Space: suspend/resume. Transport controls are not shown on screen.
-R: restart from the first command.
-The opening uses natural typing speed. There is no visible speed selector.
-Fullscreen: top-right icon, or your browser's F11 control on Windows.
-Map focus: M after the map opens.
-Map: drag to pan, scroll or +/- to zoom; crosshair recenters.
-Tool tabs: switch displays; Bash continues and returns at the map reveal and end.
-Map detail settings suspend the process while the settings window is open.
-
-The HTML file is self-contained with Leaflet, styling, source code and a small
-local street dataset. The terminal and map work offline.
-No internet connection is needed for the terminal or map.
-No OpenAI/Hugging Face account, downloaded model, npm packages, Npcap,
-Wireshark, Suricata, Bash, or EXIF utilities are required.
-
-IMPLEMENTATION
-The displayed commands are text animation. They are never passed to a shell.
-No photo metadata is actually read or scrubbed, no packets are captured, and
-no person is identified or located. Coordinates are explicitly supplied data.
-The optional Python launcher serves only the local folder on loopback.
-Closing the browser does not stop that optional launcher: press Ctrl+C in its
-console or close the launcher window when finished.
-
-SOURCE
-core.js: reference coordinates, command steps, timing and opening typing plan.
-app.js: terminal, controls and map rendering.
-styles.css and template.html: interface.
-build.py and map_builder.py: build the single-file HTML and offline dataset.
-RUN_CONSOLE.py: optional loopback web server and browser launcher.
-START_WINDOWS.bat: Windows launcher with browser-only fallback.
-data/map-data.json: public street/building/point geometry in the portable HTML.
-data/map-labels.json and map-meta.json: label candidates and bundle statistics.
-The public OSM source extracts are included as data/part-0.osm to part-3.osm.
-Running the already-built HTML does not need source files or build tools.
-
-Attribution and source references: see SOURCES.txt and LEAFLET_LICENSE.txt.
+DEVELOPMENT
+The complete source, offline map datasets, parser license and synthetic fixtures
+are included. Read HANDOFF.md for the architecture, tests, known limits and a
+copy-paste prompt for continuing with a larger model.
+Build the self-contained HTML: python3 build_metadata.py
+Core/parser tests (Node.js): node --test tests/metadata.test.cjs
+For the DOM regression test, install jsdom locally then run:
+  npm install --no-save jsdom@26.1.0
+  node --test tests/metadata.test.cjs tests/ui.test.cjs
+Pillow is required only to regenerate the synthetic fixtures; it is not required
+to run the app or the existing tests.

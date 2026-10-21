@@ -19,7 +19,7 @@ def main():
         server=ThreadingHTTPServer(('127.0.0.1',0),partial(QuietHandler,directory=str(root)))
     port=server.server_address[1]
     url=f'http://127.0.0.1:{port}/Qwen_Map_Console.html'
-    print('Qwen / Map Console is open in your browser.')
+    print('Crimson Image Metadata is open in your browser.')
     print('Leave this launcher open while viewing. Ctrl+C closes the launcher.')
     if not webbrowser.open(url):print('Open this address in your browser:',url)
     try:server.serve_forever()

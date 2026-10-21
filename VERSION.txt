@@ -1,3 +1,3 @@
-Crimson Map Console
-Three natural opening commands, then automatic Qwen initialization.
-Map geometry: 12,671 features. Labels: 1,657 candidates.
+Crimson Image Metadata 2.0.0
+Real local EXIF/GPS/XMP extraction, explicit no-location and error states.
+Offline regional streets and world overview. No AI model or map API required.

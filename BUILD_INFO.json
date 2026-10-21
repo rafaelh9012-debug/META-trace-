@@ -1,0 +1,8 @@
+{
+  "application": "Crimson Image Metadata",
+  "version": "2.0.0",
+  "dependency": "exifr 7.1.3",
+  "parserSha256": "2bd05117781c12ddd965dee846de3b3f986b5ecb4c7f6a78f2d2ec1db7c65ae7",
+  "htmlSha256": "a226c856dd05e25acf7dbff7ab492b3bf11061c4282add269c9a16350cee9abe",
+  "htmlBytes": 4115886
+}
