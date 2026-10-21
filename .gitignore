@@ -1,5 +1,7 @@
 # Local tooling and generated cache
 node_modules/
+.scratch/
+*.log
 __pycache__/
 *.py[cod]
 .pytest_cache/
