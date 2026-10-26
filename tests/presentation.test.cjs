@@ -53,10 +53,10 @@ test('successful run follows the specified beats and ends settled with no timers
   await h.clock.advance(1);assert.equal(h.controller.state,'reveal');
   await h.clock.advance(1000);assert.equal(h.controller.state,'resolve');
   await h.clock.advance(600);assert.equal(h.controller.state,'fly');
-  await h.clock.advance(2900);assert.equal(h.controller.state,'fly','waits for the camera, not a timer');
+  await h.clock.advance(PC.PROFILES.full.fly);assert.equal(h.controller.state,'fly','waits for the camera, not a timer');
   h.flights[0].resolve('arrived');await h.clock.flush();
   assert.equal(h.controller.state,'lock');
-  await h.clock.advance(500);assert.equal(h.controller.state,'settled');
+  await h.clock.advance(PC.PROFILES.full.lock);assert.equal(h.controller.state,'settled');
   assert.deepEqual(h.states,['acquire','scan','reveal','resolve','fly','lock','settled']);
   assert.equal(h.clock.pending,0);
   assert.equal(disposals(h.log).length,1);
@@ -177,12 +177,12 @@ test('starting a new run replaces the old one, and the old run cannot reveal any
 
 test('replay reuses an existing report without any analysis signals',async()=>{
   const h=harness(),s=h.controller.start({gen:5});s.signal.acquired({});s.signal.report(located);
-  await h.clock.advance(3000);h.flights[0].resolve('arrived');await h.clock.advance(600);
+  await h.clock.advance(3000);h.flights[0].resolve('arrived');await h.clock.advance(PC.PROFILES.full.lock);
   assert.equal(h.controller.state,'settled');
   const r=h.controller.replay({gen:5,report:located});
   assert.equal(r.replay,true);
   await h.clock.advance(3000);assert.equal(h.controller.state,'fly');
-  h.flights[1].resolve('arrived');await h.clock.advance(600);
+  h.flights[1].resolve('arrived');await h.clock.advance(PC.PROFILES.full.lock);
   assert.equal(h.controller.state,'settled');
 });
 
@@ -196,7 +196,7 @@ test('reduced intensity uses short beats and the camera hook receives the profil
 test('a flight that never reports back is released by a watchdog and recovered',async()=>{
   const h=harness(),s=h.controller.start({gen:1});s.signal.acquired({});s.signal.report(located);
   await h.clock.advance(2800);assert.equal(h.controller.state,'fly');
-  await h.clock.advance(2900+2500);
+  await h.clock.advance(PC.PROFILES.full.fly+2500);
   assert.equal(h.controller.state,'lock');
   assert.ok(h.log.some(x=>x[0]==='recover'&&x[1]==='timeout'));
   assert.ok(h.events.some(e=>e.type==='warning'));
@@ -219,7 +219,8 @@ test('cancelling from inside a hook is safe',async()=>{
 
 test('profiles match the specified windows',()=>{
   const p=PC.PROFILES.full;
-  assert.equal(p.acquire+p.scan+p.reveal+p.resolve+p.fly+p.lock,6200);
+  assert.equal(p.acquire+p.scan+p.reveal+p.resolve+p.fly+p.lock,11500);
+  const f=PC.PROFILES.fast;assert.equal(f.acquire+f.scan+f.reveal+f.resolve+f.fly+f.lock,5070,'fast keeps the full turn in a shorter flight');
   assert.equal(p.acquire,300);assert.equal(p.acquire+p.scan,1200);assert.equal(p.acquire+p.scan+p.reveal,2200);
   assert.ok(PC.PROFILES.fast.fly<p.fly);assert.equal(PC.PROFILES.reduced.animateCamera,false);
 });

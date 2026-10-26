@@ -1,0 +1,15 @@
+{
+  "environment": "headless Chromium 141, software rasterisation",
+  "pageBytes": 4719536,
+  "pageGzipBytes": 919975,
+  "idle": {
+    "jsHeapUsedMB": 19.8,
+    "jsHeapTotalMB": 30.5,
+    "nodes": 771
+  },
+  "afterTwoRuns": {
+    "jsHeapUsedMB": 15.4,
+    "jsHeapTotalMB": 32.1,
+    "nodes": 963
+  }
+}

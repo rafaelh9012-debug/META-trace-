@@ -52,5 +52,15 @@ with_gps('gps-antimeridian-west.jpg',gps(lat=(17,45,0),lon=(179,59,59.64),latref
 with_gps('gps-lat-85.jpg',gps(lat=(85,0,0),lon=(10,0,0),lonref='E'),image)
 with_gps('gps-near-pole.jpg',gps(lat=(89,30,0),lon=(45,0,0),lonref='E'),image)
 with_gps('gps-south-pole.jpg',gps(lat=(89,30,0),lon=(45,0,0),latref='S',lonref='W'),image)
+# --- additions for the globe and mapping upgrade (v2.2) ---------------------------------
+# Landmark coordinates in both hemispheres, near the equator and at high latitude, so the five-mile frame is checked at several scales.
+with_gps('gps-sydney.jpg',gps(lat=(33,51,24.48),lon=(151,12,55.08),latref='S',lonref='E'),image)          # southern and eastern hemispheres
+with_gps('gps-quito.jpg',gps(lat=(0,10,48),lon=(78,28,12),latref='S',lonref='W'),image)                  # almost on the equator
+with_gps('gps-tromso.jpg',gps(lat=(69,38,57),lon=(18,57,19),lonref='E'),image)                           # 69.6 N
+with_gps('gps-longyearbyen.jpg',gps(lat=(78,13,24),lon=(15,37,36),lonref='E'),image)                     # 78.2 N, the highest supported flat-map case
+with_gps('gps-mcmurdo.jpg',gps(lat=(77,50,30),lon=(166,40,0),latref='S',lonref='E'),image)               # 77.8 S
 (p/'README.txt').write_text('All images are generated colored rectangles containing synthetic metadata. Coordinates are test values, not the location of a photographed person. Run generate_fixtures.py with Pillow only when regenerating these files. Running the application requires no Python packages.\n')
+# --- Florence, inside the real Protomaps sample in data/samples (v2.2) ---------------------------------------------
+# Piazza del Duomo, 43.77310 N, 11.25580 E: a real third-party package covers it (north and east hemispheres).
+with_gps('gps-florence-duomo.jpg',gps(lat=(43,46,23.16),lon=(11,15,20.88),latref='N',lonref='E'))
 print('Generated',len(list(p.glob('*'))),'fixture files.')

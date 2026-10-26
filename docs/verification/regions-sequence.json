@@ -1,0 +1,74 @@
+{
+  "environment": "headless Chromium, software rasterisation, 1440x900",
+  "package": {
+    "bytes": 94798,
+    "tiles": 146
+  },
+  "sweepDegrees": 529.8,
+  "tilesReadyAtHandOff": 4,
+  "frames": {
+    "frames": 458,
+    "median": 16.7,
+    "p95": 33.2,
+    "worst": 33.4
+  },
+  "mapFrames": {
+    "frames": 140,
+    "median": 16.7,
+    "p95": 16.7,
+    "worst": 16.8
+  },
+  "regions": {
+    "packages": [
+      {
+        "id": "pkg-d523fb5f-215a",
+        "name": "Test pattern sydney",
+        "bounds": [
+          151.17,
+          -33.89,
+          151.26,
+          -33.82
+        ],
+        "minZoom": 9,
+        "maxZoom": 15,
+        "bytes": 94798
+      }
+    ],
+    "tiles": 14,
+    "ready": 14,
+    "loading": 0,
+    "queued": 0,
+    "empty": 0,
+    "errors": 0,
+    "bytes": 64704,
+    "maxTiles": 220,
+    "maxBytes": 58720256,
+    "loaded": 14,
+    "failed": 0,
+    "evicted": 0,
+    "tileBytesRead": 26567,
+    "decodeMs": 6,
+    "adaptMs": 5,
+    "readMs": 899,
+    "maxLoadMs": 285,
+    "lastLoadMs": 13,
+    "decoded": 14,
+    "droppedFeatures": 0,
+    "tz": 12,
+    "active": 0
+  },
+  "layer": {
+    "draws": 206,
+    "lastMs": 0.5,
+    "avgMs": 0.2606199451823157,
+    "maxMs": 11.699999999254942,
+    "localReady": true,
+    "superseded": false,
+    "regionTiles": 6,
+    "regionMs": 0.09999999776482582,
+    "regionPaths": 14,
+    "labels": 1,
+    "regionLabels": 1,
+    "buildMs": 109.40000000223517
+  }
+}

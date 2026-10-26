@@ -14,7 +14,7 @@ function startLauncher() {
     let out = '', err = '';
     const timer = setTimeout(() => {child.kill(); reject(new Error('launcher did not report a URL in 8 s. stdout: ' + out + ' stderr: ' + err));}, 8000);
     child.stderr.on('data', d => {err += d;});
-    child.stdout.on('data', d => {out += d; const m = out.match(/URL (http:\/\/127\.0\.0\.1:\d+\/Qwen_Map_Console\.html)/); if (m) {clearTimeout(timer); resolve({child, url: m[1], out});}});
+    child.stdout.on('data', d => {out += d; const m = out.match(/URL (http:\/\/127\.0\.0\.1:\d+\/META_trace_Console\.html)/); if (m) {clearTimeout(timer); resolve({child, url: m[1], out});}});
     child.on('error', e => {clearTimeout(timer); reject(e);});
   });
 }
@@ -31,7 +31,8 @@ test('the launcher serves the built page on loopback and a complete analysis wor
     await B.analyze(app.page, 'sample-street.jpg');
     const s = await B.snapshot(app.page);
     assert.equal(await B.text(app.page, 'statusTitle'), 'GPS coordinates found');
-    assert.ok(Math.abs(s.pin.lat - (29 + 38 / 60 + 55.87 / 3600)) < 1e-9 && s.camera.zoom === 18);
+    assert.ok(Math.abs(s.pin.lat - (29 + 38 / 60 + 55.87 / 3600)) < 1e-9);
+    await B.expectFrame(app.page, 29 + 38 / 60 + 55.87 / 3600, -(82 + 20 / 60 + 16.4 / 3600), 'over http: ', {renderer: 'map'});
     assert.equal(await B.content(app.page, 'fileHash'), B.sha256('sample-street.jpg'));
     const outside = app.requests.filter(u => !/^(blob:|data:|about:)/.test(u) && !u.startsWith(origin + '/'));
     assert.deepEqual(outside, [], 'requests to anywhere but the launcher itself');

@@ -22,10 +22,10 @@
   const mercY=lat=>{const s=Math.sin(Math.max(-MAX_LAT,Math.min(MAX_LAT,lat))*D2R);return (0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*TILE;};
 
   const MINOR_WAYS=new Set(['footway','path','cycleway','steps','pedestrian']);
-  const MAJOR_WAYS=new Set(['primary','secondary','tertiary','trunk']);
+  const MAJOR_WAYS=new Set(['motorway','primary','secondary','tertiary','trunk']);
   const INDOOR_WAYS=new Set(['corridor','elevator','bus_stop']);
   const BASE_KINDS=['green','parking','paved','water','building'];
-  const LOCAL_MIN_ZOOM=10.5,POINT_MIN_ZOOM=17.5,GRID=10;
+  const LOCAL_MIN_ZOOM=10.5,POINT_MIN_ZOOM=17.5,GRID=10,REGION_MIN_ZOOM=9,REGION_PRELOAD=.18;
 const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.05,.1,.25,.5,1,2,5,10,15,30,45,60,90];
 
   const palette={
@@ -35,6 +35,13 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
   };
 
   /** Static drawing rules for one group of features. Roads get their width per frame from zoom. */
+  /** A polygon's rings with the outer ring wound one way and every hole the other, whatever order the source listed them in. */
+  function windRings(rings){
+    return rings.map((ring,i)=>{
+      let a=0;for(let k=0,n=ring.length;k<n;k++){const p=ring[k],q=ring[(k+1)%n];a+=p[0]*q[1]-q[0]*p[1];}
+      return (a>0)===(i===0)?ring:ring.slice().reverse();
+    });
+  }
   function specFor(kind,highway,highlight){
     switch(kind){
       case 'green':return {order:0,minZoom:12.5,stroke:'#39222c',weight:.3,fill:'#21161c',fillOpacity:.95,opacity:1};
@@ -43,6 +50,8 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
       case 'water':return {order:3,minZoom:11,stroke:'#644151',weight:.8,fill:'#211722',fillOpacity:.95,opacity:1};
       case 'building':return {order:4,minZoom:13.5,strokeMinZoom:15.5,stroke:highlight?'#d65b80':'#74404f',weight:highlight?1.3:.7,fill:highlight?'#4e2235':'#33212b',fillOpacity:.95,opacity:1};
       case 'barrier':return {order:6,minZoom:17,stroke:'#b65f75',weight:.8,opacity:.55,dash:[2,3]};
+      case 'waterway':return {order:3.5,minZoom:11,stroke:'#644151',weight:1.2,opacity:.9};
+      case 'rail':return {order:5,minZoom:11,stroke:'#6b4658',weight:.9,opacity:.8,dash:[5,3]};
       case 'road':{
         const major=MAJOR_WAYS.has(highway),minor=MINOR_WAYS.has(highway),indoor=INDOOR_WAYS.has(highway);
         return {order:7,road:true,major,minor,casing:!minor,minZoom:major?10.5:minor?15.5:indoor?17:13,stroke:major?'#ad6275':minor?'#663c4a':'#734454',base:major?5.5:minor?.8:2.8,opacity:minor?.65:1,dash:minor?[2,3]:null};
@@ -68,7 +77,8 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
       initialize(opts){
         L.setOptions(this,{pane:opts.pane||'traceBase'});
         this._cfg=opts;this._local=null;this._labels=[];this._labelState=new Map();this._lastSelect=-1e9;this._lastKey='';this._lastDraw=0;
-        this.stats={draws:0,lastMs:0,avgMs:0,maxMs:0,localReady:false};
+        this._regions=null;this._regionTiles=[];this._superseded=false;
+        this.stats={draws:0,lastMs:0,avgMs:0,maxMs:0,localReady:false,superseded:false,regionTiles:0,regionMs:0,regionPaths:0,labels:0,regionLabels:0,labelNames:[]};
         this._buildWorld(opts.world);
       },
       onAdd(map){
@@ -79,7 +89,7 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
         this._ctx=canvas.getContext('2d',{alpha:true});
         this._resize();this.redraw(true);
       },
-      onRemove(){L.DomUtil.remove(this._canvas);this._canvas=null;this._ctx=null;cancelAnimationFrame(this._raf);},
+      onRemove(){L.DomUtil.remove(this._canvas);this._canvas=null;this._ctx=null;cancelAnimationFrame(this._raf);clearTimeout(this._selectTimer);this._selectTimer=0;},
       getEvents(){return {viewreset:this._onView,move:this._onMove,zoom:this._onMove,moveend:this._onSettle,zoomend:this._onSettle,zoomanim:this._onZoomAnim,resize:this._onResize};},
       _onView(){this.redraw(true);},
       _onMove(){this.redraw(false);},
@@ -132,7 +142,9 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
           const spec=specFor(p.kind,p.highway,p.highlight);if(!spec)continue;
           const key=p.kind+'|'+(p.highway||'')+'|'+(p.highlight?1:0);
           let group=groups.get(key);if(!group){group={spec,kind:p.kind,full:new Path2D(),cells:new Map()};groups.set(key,group);}
-          const lines=g.type==='LineString'?[g.coordinates]:g.type==='Polygon'?g.coordinates:g.type==='MultiLineString'?g.coordinates:g.type==='MultiPolygon'?g.coordinates.flat():[];
+          // Polygon rings are wound outer one way, holes the other, so the fill rule is "nonzero": a footprint that is listed in several
+          // grid cells (and therefore added to the visible path more than once) is still filled, where "evenodd" would cancel it.
+          const lines=g.type==='LineString'?[g.coordinates]:g.type==='Polygon'?windRings(g.coordinates):g.type==='MultiLineString'?g.coordinates:g.type==='MultiPolygon'?g.coordinates.flatMap(windRings):[];
           const close=g.type==='Polygon'||g.type==='MultiPolygon';
           let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
           for(const line of lines)for(const c of line){const x=mercX(c[0])-ox,y=mercY(c[1])-oy;if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y;}
@@ -159,10 +171,18 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
       // ---- labels ---------------------------------------------------------------
       _selectLabels(force){
         const map=this._map;if(!map||!this._canvas)return;
-        const now=performance.now();if(!force&&now-this._lastSelect<250)return;this._lastSelect=now;
-        const z=map.getZoom(),c=map.getCenter(),local=z>=14&&this._local&&inBounds(c.lat,c.lng,this._cfg.bounds);
-        const source=(local?this._cfg.localLabels:this._cfg.worldLabels)||[];
-        const project=p=>{const lon=local?p.lon:p.lon+360*Math.round((c.lng-p.lon)/360);return map.latLngToContainerPoint([p.lat,lon]);};
+        const now=performance.now();
+        if(!force&&now-this._lastSelect<250){
+          // Throttled: come back when the window has passed, so labels for what arrived in the meantime (tiles, a settled move) are not missed.
+          if(!this._selectTimer)this._selectTimer=setTimeout(()=>{this._selectTimer=0;this.redraw(true);},Math.max(10,260-(now-this._lastSelect)));
+          return;
+        }
+        this._lastSelect=now;
+        const z=map.getZoom(),c=map.getCenter(),local=z>=14&&this._local&&!this._superseded&&inBounds(c.lat,c.lng,this._cfg.bounds);
+        let source=(local?this._cfg.localLabels:this._cfg.worldLabels)||[];
+        // Names from the installed package's tiles that are being drawn (marked region: they are placed in the nearest world copy).
+        if(this._regionTiles.length)source=source.concat(this._regions.labels(this._regionView(map,z),this._regionTiles));
+        const project=p=>{const lon=local&&!p.region?p.lon:p.lon+360*Math.round((c.lng-p.lon)/360);return map.latLngToContainerPoint([p.lat,lon]);};
         const picked=this._cfg.selectLabels(source,z,project,map.getSize(),{});
         const keep=new Set();
         for(const p of picked){
@@ -170,6 +190,7 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
           const e=this._labelState.get(key);if(e){e.target=1;e.label=p;e.local=local;}else this._labelState.set(key,{label:p,alpha:0,target:1,local});
         }
         for(const [key,e] of this._labelState)if(!keep.has(key))e.target=0;
+        this.stats.labels=picked.length;this.stats.regionLabels=picked.filter(p=>p.region).length;this.stats.labelNames=picked.map(p=>p.kind+': '+p.text);   // what is on screen, for diagnostics and tests
       },
       _drawLabels(ctx,dt,center){
         const map=this._map;let animating=false;
@@ -177,7 +198,7 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
           if(e.alpha<e.target){e.alpha=Math.min(e.target,e.alpha+dt/160);animating=true;}
           else if(e.alpha>e.target){e.alpha=Math.max(e.target,e.alpha-dt/160);animating=true;}
           if(e.alpha<=0&&e.target===0){this._labelState.delete(key);continue;}
-          const p=e.label,lon=e.local?p.lon:p.lon+360*Math.round((center.lng-p.lon)/360),pt=map.latLngToContainerPoint([p.lat,lon]);
+          const p=e.label,lon=e.local&&!p.region?p.lon:p.lon+360*Math.round((center.lng-p.lon)/360),pt=map.latLngToContainerPoint([p.lat,lon]);
           if(pt.x<-120||pt.y<-30||pt.x>this._w+120||pt.y>this._h+30)continue;
           const f=labelFont(p.kind);
           ctx.save();ctx.globalAlpha=e.alpha;ctx.translate(pt.x,pt.y);if(p.angle)ctx.rotate(p.angle*D2R);
@@ -208,7 +229,15 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
         ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,this._w,this._h);
         this._drawWorld(ctx,s,min);
         this._drawGraticule(ctx,s,min,z);
-        if(this._local&&z>=LOCAL_MIN_ZOOM)this._drawLocal(ctx,s,min,z,dpr);
+        this._superseded=this.stats.superseded=this._bundledSuperseded();
+        if(this._local&&z>=LOCAL_MIN_ZOOM&&!this._superseded)this._drawLocal(ctx,s,min,z,dpr);
+        this._regionTiles=[];
+        if(this._regions&&z>=REGION_MIN_ZOOM){
+          const tr=performance.now(),d=this._regions.drawable(this._regionView(map,z));
+          this._regionTiles=d.tiles;
+          if(d.tiles.length)this._drawRegions(ctx,s,min,z,dpr,d.tiles);
+          this.stats.regionTiles=d.tiles.length;this.stats.regionMs=performance.now()-tr;
+        }else this.stats.regionTiles=0;
         ctx.setTransform(dpr,0,0,dpr,0,0);
         this._selectLabels(false);
         const dt=Math.min(60,t0-(this._lastDraw||t0));this._lastDraw=t0;
@@ -259,6 +288,94 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
         for(let k=k0;k<=k1;k++){const lon=((k*step+180)%360+360)%360-180,x=Math.round((k*step+180)/360*W-min.x)+4;if(x<56||x>w-70)continue;ctx.fillText(Math.abs(lon).toFixed(decimals)+'°'+(lon<0?'W':lon>0?'E':''),x,h*.3);}
         ctx.restore();
       },
+      // ---- installed regional packages ------------------------------------------------------------
+      /** Attaches the region manager (see region-manager.js). Tiles are requested from here, drawn from here, and the manager asks for a redraw as they arrive. */
+      setRegions(manager){this._regions=manager||null;this._regionTiles=[];this._labelState.clear();if(this._canvas)this.redraw(true);},
+      regionsChanged(){if(this._canvas){this._lastSelect=-1e9;this.redraw(true);}},
+      _regionView(map,z){
+        const b=map.getBounds(),dw=(b.getEast()-b.getWest())*REGION_PRELOAD,dh=(b.getNorth()-b.getSouth())*REGION_PRELOAD;
+        return {zoom:z,west:b.getWest()-dw,east:b.getEast()+dw,south:Math.max(-MAX_LAT,b.getSouth()-dh),north:Math.min(MAX_LAT,b.getNorth()+dh)};
+      },
+      /** An installed package that covers the middle of the bundled street data, and is detailed enough, replaces it (the two would draw the same streets twice). */
+      _bundledSuperseded(){
+        if(!this._regions||!this._local)return false;
+        // Only when one package covers all four corners of the bundled area: a package that covers just part of it must not
+        // leave the rest without streets.
+        const b=this._cfg.bounds;
+        for(const [lat,lon] of [[b[1],b[0]],[b[1],b[2]],[b[3],b[0]],[b[3],b[2]]]){
+          const pkg=this._regions.covers(lat,lon);
+          if(!pkg||pkg.info.maxZoom<14)return false;
+        }
+        return true;
+      },
+      /** Path2D objects for a tile, built the first time it is drawn and kept with it. */
+      _pathsFor(model){
+        if(model._paths)return model._paths;
+        const groups=[];
+        for(const g of model.groups){
+          const spec=specFor(g.kind,g.highway,false);if(!spec)continue;
+          let fill=null,stroke=null;
+          if(g.fill.length){fill=new Path2D();for(const ring of g.fill){const n=ring.length;fill.moveTo(ring[0],ring[1]);for(let i=2;i<n;i+=2)fill.lineTo(ring[i],ring[i+1]);fill.closePath();}}
+          if(g.stroke.length){stroke=new Path2D();for(const r of g.stroke){const a=r.pts,n=a.length;stroke.moveTo(a[0],a[1]);for(let i=2;i<n;i+=2)stroke.lineTo(a[i],a[i+1]);if(r.closed)stroke.closePath();}}
+          if(fill||stroke)groups.push({spec,kind:g.kind,highway:g.highway,fill,stroke});
+        }
+        model._paths={groups};this.stats.regionPaths++;
+        return model._paths;
+      },
+      _drawRegions(ctx,s,min,z,dpr,tiles){
+        const byKind=new Map(),roads=[];
+        for(const t of tiles){
+          const paths=this._pathsFor(t.model);
+          for(const g of paths.groups){
+            if(z<g.spec.minZoom)continue;
+            if(g.kind==='road')roads.push({t,g});
+            else{let list=byKind.get(g.kind);if(!list)byKind.set(g.kind,list=[]);list.push({t,g});}
+          }
+        }
+        const place=t=>ctx.setTransform(dpr*s,0,0,dpr*s,dpr*((t.model.ox+t.shift)*s-min.x),dpr*(t.model.oy*s-min.y));
+        ctx.lineJoin='round';ctx.lineCap='round';
+        for(const kind of BASE_KINDS){
+          const list=byKind.get(kind);if(!list)continue;
+          for(const {t,g} of list){
+            const sp=g.spec;place(t);
+            if(g.fill){ctx.globalAlpha=sp.fillOpacity;ctx.fillStyle=sp.fill;ctx.fill(g.fill);}
+            if(g.stroke&&(sp.strokeMinZoom===undefined||z>=sp.strokeMinZoom)){ctx.globalAlpha=sp.opacity;ctx.lineWidth=sp.weight/s;ctx.strokeStyle=sp.stroke;ctx.setLineDash([]);ctx.stroke(g.stroke);}
+          }
+        }
+        for(const kind of ['waterway','rail','barrier']){
+          const list=byKind.get(kind);if(!list)continue;
+          for(const {t,g} of list){
+            const sp=g.spec;if(!g.stroke)continue;place(t);
+            ctx.globalAlpha=sp.opacity;ctx.strokeStyle=sp.stroke;ctx.lineWidth=sp.weight/s;ctx.setLineDash(sp.dash?sp.dash.map(d=>d/s):[]);ctx.stroke(g.stroke);
+          }
+        }
+        ctx.setLineDash([]);
+        // Casings under every road of every tile first, then the roads, thin before wide, so junctions and tile edges join up.
+        for(const {t,g} of roads){
+          const sp=g.spec;if(!sp.casing||!g.stroke)continue;place(t);
+          ctx.globalAlpha=1;ctx.strokeStyle=palette.casing;ctx.lineWidth=(roadWeight(sp,z)+2.8)/s;ctx.stroke(g.stroke);
+        }
+        roads.sort((a,b)=>Number(a.g.spec.major)-Number(b.g.spec.major));
+        for(const {t,g} of roads){
+          const sp=g.spec;if(!g.stroke)continue;place(t);
+          ctx.globalAlpha=sp.opacity;ctx.strokeStyle=sp.stroke;ctx.lineWidth=roadWeight(sp,z)/s;ctx.setLineDash(sp.dash?sp.dash.map(d=>d/s):[]);ctx.stroke(g.stroke);
+        }
+        ctx.setLineDash([]);ctx.globalAlpha=1;
+        if(z>=POINT_MIN_ZOOM){
+          for(const kind of ['tree','furniture','poi','bus']){
+            const st=pointStyle(kind);
+            for(const t of tiles){
+              const pts=t.model.points;if(!pts.length)continue;
+              ctx.beginPath();let n=0;
+              for(const p of pts){if(p.kind!==kind)continue;ctx.moveTo(p.x+st.radius/s,p.y);ctx.arc(p.x,p.y,st.radius/s,0,Math.PI*2);n++;}
+              if(!n)continue;
+              place(t);
+              ctx.globalAlpha=st.fillOpacity;ctx.fillStyle=st.fill;ctx.fill();ctx.globalAlpha=1;ctx.lineWidth=st.weight/s;ctx.strokeStyle=st.stroke;ctx.stroke();
+            }
+          }
+        }
+        ctx.globalAlpha=1;
+      },
       _visiblePath(group,cells,full){
         if(full)return group.full;
         const out=new Path2D();let any=false;
@@ -280,7 +397,7 @@ const GRATICULE_FADE_END=15.5,GRATICULE_STEPS=[.0005,.001,.0025,.005,.01,.025,.0
         ctx.lineJoin='round';ctx.lineCap='round';
         for(const g of L0.base){
           const sp=g.spec;if(z<sp.minZoom)continue;const path=this._visiblePath(g,cells,full);if(!path)continue;
-          ctx.globalAlpha=sp.fillOpacity;ctx.fillStyle=sp.fill;ctx.fill(path,'evenodd');
+          ctx.globalAlpha=sp.fillOpacity;ctx.fillStyle=sp.fill;ctx.fill(path);
           if(sp.strokeMinZoom===undefined||z>=sp.strokeMinZoom){ctx.globalAlpha=sp.opacity;ctx.lineWidth=sp.weight/s;ctx.strokeStyle=sp.stroke;ctx.stroke(path);}
         }
         ctx.setLineDash([]);

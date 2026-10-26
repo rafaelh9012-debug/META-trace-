@@ -201,9 +201,30 @@ tbody.revealing tr.row-in{animation:row-in .32s ease-out both;animation-delay:ca
 .hash-panel code{word-break:break-all;color:var(--text)}
 
 /* ---- map ------------------------------------------------------------------- */
-.map-panel{position:relative;min-height:380px;background:#10090f;isolation:isolate;overflow:hidden}
+/* --reserve-top / --reserve-bottom: the bands of the pane that the heading and the coverage note keep. The five-mile frame is sized
+   to stay clear of them (read by the app, see GM.frameSide). */
+.map-panel{position:relative;min-height:380px;background:#10090f;isolation:isolate;overflow:hidden;--reserve-top:112px;--reserve-bottom:144px}
 #map{position:absolute;inset:0;background:#10090f}
 .leaflet-container{background:#10090f!important;font-family:var(--font-ui)!important}
+/* The globe sits above the Leaflet pane (z 400) and below the page overlays (401 and up). Only one of the two is
+   visible at a time, apart from the short cross-fade, whose length the director sets in --view-fade. */
+.globe-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:400;background:#050106;opacity:1;visibility:visible;outline-offset:-4px;transition:opacity var(--view-fade,0ms) linear}
+.map-panel[data-view="map"] .globe-canvas{opacity:0;visibility:hidden;pointer-events:none;transition:opacity var(--view-fade,0ms) linear,visibility 0s linear var(--view-fade,0ms)}
+.map-panel[data-view="globe"] .leaflet-map-pane{visibility:hidden;transition:visibility 0s linear var(--view-fade,0ms)}
+.map-panel[data-view="map"] .leaflet-map-pane{visibility:visible;transition:none}
+.map-panel[data-view="globe"] .leaflet-control-scale{display:none}
+.globe-readout{position:absolute;right:24px;top:66px;z-index:410;color:var(--muted);font-size:var(--fs-s);text-shadow:0 1px 5px #000;pointer-events:none}
+.map-panel[data-view="map"] .globe-readout{display:none}
+/* The target frame: the five-mile square the final view is fitted to. Its size is set in pixels by the director. */
+.frame5{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:405;pointer-events:none;border:1px dashed rgba(244,143,171,.34);opacity:0;transition:opacity .35s ease-out}
+.frame5[data-on="true"]{opacity:1}
+.frame5 .f5{position:absolute;width:18px;height:18px;border:2px solid var(--accent-strong);opacity:.9}
+.frame5 .tl{left:-2px;top:-2px;border-right:0;border-bottom:0}.frame5 .tr{right:-2px;top:-2px;border-left:0;border-bottom:0}
+.frame5 .bl{left:-2px;bottom:-2px;border-right:0;border-top:0}.frame5 .br{right:-2px;bottom:-2px;border-left:0;border-top:0}
+.f5-label{position:absolute;color:var(--accent-strong);font-size:var(--fs-s);text-shadow:0 1px 5px #000,0 0 2px #000;white-space:nowrap}
+.f5-top{left:50%;top:-22px;transform:translateX(-50%)}
+.f5-left{left:-28px;top:50%;transform:translate(-50%,-50%) rotate(-90deg)}
+[data-motion="reduced"] .frame5{transition-duration:.01ms!important}
 .map-panel::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(15,8,14,.92),transparent 22%,transparent 80%,rgba(16,9,14,.85));pointer-events:none;z-index:401}
 .map-heading{position:absolute;top:22px;left:24px;right:24px;display:flex;justify-content:space-between;gap:16px;z-index:410;pointer-events:none}
 .map-heading h2{font-size:var(--fs-xl);font-weight:600}
@@ -213,12 +234,17 @@ tbody.revealing tr.row-in{animation:row-in .32s ease-out both;animation-delay:ca
 .map-notice svg{width:30px;height:30px;color:var(--accent)}
 .map-notice h3{font-size:var(--fs-l);font-weight:600;margin:12px 0 8px}
 .map-notice p{color:var(--muted);line-height:1.65}
-.map-controls{position:absolute;z-index:410;right:20px;top:46%;border:1px solid var(--line-strong);background:rgba(36,20,29,.94);border-radius:var(--radius-m);display:flex;flex-direction:column;overflow:hidden}
+.map-controls{position:absolute;z-index:410;right:20px;top:max(64px,calc(50% - 140px));border:1px solid var(--line-strong);background:rgba(36,20,29,.94);border-radius:var(--radius-m);display:flex;flex-direction:column;overflow:hidden}
 .map-controls button{width:40px;height:40px;display:grid;place-items:center;background:transparent;border:0;border-bottom:1px solid var(--line-strong);color:var(--text)}
 .map-controls button:last-child{border:0}
+/* A second Skip, on the map, for the stacked layouts where the stage's own Skip is scrolled out of sight while the globe plays. */
+.map-controls #mapSkip{display:none}
 .map-controls button:not(:disabled):hover{background:var(--raised)}
-.coverage-note{position:absolute;left:24px;bottom:58px;z-index:410;max-width:min(520px,calc(100% - 110px));color:var(--muted);font-size:var(--fs-s);line-height:1.6;background:rgba(23,16,22,.88);border-left:2px solid var(--accent-dim);padding:10px 14px}
-.map-coordinate{position:absolute;left:24px;bottom:24px;z-index:410;font-size:var(--fs-l);color:var(--text);text-shadow:0 1px 5px #000}
+/* The note and the coordinate readout share one box that grows upward from the bottom edge, so a long note can never run over the readout. */
+.map-foot{position:absolute;left:24px;bottom:24px;z-index:410;max-width:min(520px,calc(100% - 110px));display:flex;flex-direction:column;align-items:flex-start;gap:8px;pointer-events:none}
+.map-foot>*{pointer-events:auto}
+.coverage-note{max-width:100%;color:var(--muted);font-size:var(--fs-s);line-height:1.6;background:rgba(23,16,22,.88);border-left:2px solid var(--accent-dim);padding:10px 14px}
+.map-coordinate{font-size:var(--fs-l);color:var(--text);text-shadow:0 1px 5px #000}
 .leaflet-control-attribution{font-size:11px!important;background:rgba(23,16,22,.88)!important;color:var(--muted)!important;padding:2px 6px!important}
 .leaflet-control-attribution a{color:var(--accent-strong)!important}
 .leaflet-control-scale-line{background:rgba(23,16,22,.8)!important;color:var(--text)!important;border-color:var(--accent-dim)!important;text-shadow:none!important;font-size:11px!important}
@@ -255,7 +281,9 @@ a.leaflet-popup-close-button{color:var(--muted)!important;font-size:20px!importa
   .col{display:contents}
   .stage{grid-area:stage;background:linear-gradient(165deg,#1d1019,var(--panel) 60%)}
   .result{grid-area:result;background:var(--panel);border-bottom:0}
-  .map-panel{grid-area:map;height:min(62vh,560px);border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+  .map-panel{grid-area:map;height:min(62vh,560px);border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);--reserve-bottom:112px}
+  .map-foot{max-width:min(720px,calc(100% - 210px))}
+  .map-controls #mapSkip:not([hidden]){display:grid}
   .details{grid-area:details;background:var(--panel)}
   .log-section{grid-area:log;background:var(--panel);border-top:0}
   .metadata-table-wrap{max-height:420px}
@@ -270,7 +298,7 @@ a.leaflet-popup-close-button{color:var(--muted)!important;font-size:20px!importa
   .volume{width:72px}
   .motion span{display:none}
   .workspace{display:flex;flex-direction:column}
-  .stage{order:1;padding:16px}.result{order:2;padding:16px;border-bottom:1px solid var(--line)}.map-panel{order:3;height:480px}.details{order:4;padding:16px}.log-section{order:5;padding:16px}
+  .stage{order:1;padding:16px}.result{order:2;padding:16px;border-bottom:1px solid var(--line)}.map-panel{order:3;height:560px}.details{order:4;padding:16px}.log-section{order:5;padding:16px}
   .bay{--margin:36px;padding-top:24px}
   .frame{width:min(100%,calc(46vh * var(--ar,1.3333)))}
   .btn{min-height:44px}
@@ -280,10 +308,17 @@ a.leaflet-popup-close-button{color:var(--muted)!important;font-size:20px!importa
   .map-heading{left:16px;right:16px;top:16px}
   .map-heading h2{font-size:var(--fs-l)}
   .map-heading p{display:none}
-  .coverage-note{left:16px;bottom:52px}
-  .map-coordinate{left:16px;bottom:18px;font-size:var(--fs-m)}
-  .map-controls{right:14px}
-  .map-controls button{width:44px;height:44px}
+  .map-foot{left:16px;bottom:38px;max-width:calc(100% - 32px)}
+  /* One line of scale (miles) on phones: two lines would stand taller than the coordinate readout and reach the note above it. The frame itself is labelled in both units (5 mi, 8.05 km). */
+  .leaflet-control-scale-line:nth-child(1){display:none}
+  .map-panel{--reserve-top:116px;--reserve-bottom:188px}
+  .map-coordinate{font-size:var(--fs-m)}
+  /* seven 44 px buttons do not fit down the side of a 480 px pane: a row under the heading instead */
+  .map-controls{top:68px;right:auto;left:16px;flex-direction:row}
+  /* the altitude readout goes under that row (it is right-aligned beside the buttons on wider panes) */
+  .globe-readout{left:16px;right:auto;top:120px}
+  .map-controls button{width:44px;height:44px;border-bottom:0;border-right:1px solid var(--line-strong)}
+  .map-controls button:last-child{border-right:0}
   .axis b,.fx{font-size:24px}
   .result-actions .btn{min-width:0}
 }
@@ -295,3 +330,38 @@ a.leaflet-popup-close-button{color:var(--muted)!important;font-size:20px!importa
 [data-motion="reduced"] .trace-pin .ring{display:none}
 [data-motion="reduced"] tbody.revealing tr.row-in{animation:fade-in .2s ease-out both!important;animation-delay:0s!important}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
+
+/* ---- map data dialog and the coverage action ---------------------------------------------------- */
+.coverage-action{display:inline;margin:0 0 0 6px;padding:0;border:0;background:none;color:var(--accent-strong);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.coverage-action:hover{color:var(--text)}
+.dialog{width:min(640px,calc(100vw - 32px));max-height:min(86vh,760px);padding:22px 24px 20px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--text);box-shadow:0 24px 80px rgba(0,0,0,.7);overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.dialog::backdrop{background:rgba(8,4,8,.72)}
+.dialog[open]{display:block}
+.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dialog-head h2{margin:0;font-size:var(--fs-xl);font-weight:600}
+.dialog-close svg{width:18px;height:18px}
+.dialog-intro{margin:10px 0 4px;color:var(--muted);line-height:1.6;max-width:62ch}
+.dialog h3{margin:20px 0 8px;font-size:var(--fs-m);font-weight:600;color:var(--accent-strong)}
+.data-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.data-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.data-list .data-name{font-weight:600;overflow-wrap:anywhere}
+.data-list .data-facts{grid-column:1;color:var(--muted);font-size:var(--fs-s);line-height:1.6}
+.data-list .data-credit{grid-column:1;color:var(--muted);font-size:var(--fs-s);line-height:1.55;overflow-wrap:anywhere}
+.data-list .data-actions{grid-column:2;grid-row:1 / span 2;align-self:start}
+.data-flag{display:inline-block;margin-left:8px;padding:1px 8px;border:1px solid var(--warn);border-radius:99px;color:var(--warn);font-size:11px;font-weight:500;vertical-align:1px}
+.data-flag.is-ok{border-color:var(--line-strong);color:var(--muted)}
+.data-fault{grid-column:1 / -1;color:var(--danger);font-size:var(--fs-s)}
+.dialog .empty{margin:12px 0 0;max-width:62ch}
+.dialog-add{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-top:18px}
+.check{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:var(--fs-s);cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.dialog-status{min-height:1.6em;margin:12px 0 0;font-size:var(--fs-s);line-height:1.6;color:var(--muted)}
+.dialog-status[data-kind="error"]{color:var(--danger)}
+.dialog-status[data-kind="ok"]{color:var(--text)}
+.dialog-foot{margin:6px 0 0;color:var(--muted);font-size:var(--fs-s);line-height:1.6}
+@media (max-width:720px){
+  .dialog{padding:18px 16px 16px;max-height:92vh}
+  .data-list li{grid-template-columns:minmax(0,1fr)}
+  .data-list .data-actions{grid-column:1;grid-row:auto}
+  .dialog-add .btn{flex:1 1 100%}
+}

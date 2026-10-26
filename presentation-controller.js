@@ -21,10 +21,12 @@
   const STATES=Object.freeze(['idle','acquire','scan','reveal','resolve','fly','lock','settled','cancelled','error']);
 
   // Beat durations in milliseconds. These are presentation targets, not measured
-  // processing times. `full` sums to 6.2 s: 0.3 + 0.9 + 1.0 + 0.6 + 2.9 + 0.5.
+  // processing times. `full` sums to 11.5 s: 0.3 + 0.9 + 1.0 + 0.6 + 8.0 + 0.7. The 8 s flight holds one full
+  // turn of the globe, the orientation toward the target and the descent to the five-mile frame (see globe-director.js).
+  // `fast` keeps the full turn and shortens every beat (5.07 s in all); only `reduced` skips the camera travel.
   const PROFILES=Object.freeze({
-    full:Object.freeze({name:'full',acquire:300,scan:900,reveal:1000,resolve:600,fly:2900,lock:500,animateCamera:true,theatrics:true}),
-    fast:Object.freeze({name:'fast',acquire:140,scan:420,reveal:450,resolve:260,fly:1300,lock:260,animateCamera:true,theatrics:true}),
+    full:Object.freeze({name:'full',acquire:300,scan:900,reveal:1000,resolve:600,fly:8000,lock:700,animateCamera:true,theatrics:true}),
+    fast:Object.freeze({name:'fast',acquire:140,scan:420,reveal:450,resolve:260,fly:3400,lock:400,animateCamera:true,theatrics:true}),
     reduced:Object.freeze({name:'reduced',acquire:90,scan:140,reveal:220,resolve:140,fly:0,lock:200,animateCamera:false,theatrics:false})
   });
 

@@ -10,16 +10,16 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 def main():
     root=Path(__file__).resolve().parent
-    if not (root/'Qwen_Map_Console.html').exists():
-        print('Qwen_Map_Console.html is missing. Extract the complete ZIP first.')
+    if not (root/'META_trace_Console.html').exists():
+        print('META_trace_Console.html is missing. Extract the complete ZIP first.')
         return 1
     try:
         server=ThreadingHTTPServer(('127.0.0.1',8765),partial(QuietHandler,directory=str(root)))
     except OSError:
         server=ThreadingHTTPServer(('127.0.0.1',0),partial(QuietHandler,directory=str(root)))
     port=server.server_address[1]
-    url=f'http://127.0.0.1:{port}/Qwen_Map_Console.html'
-    print('Crimson Image Metadata is open in your browser.')
+    url=f'http://127.0.0.1:{port}/META_trace_Console.html'
+    print('META trace is open in your browser.')
     print('Leave this launcher open while viewing. Ctrl+C closes the launcher.')
     if not webbrowser.open(url):print('Open this address in your browser:',url)
     try:server.serve_forever()

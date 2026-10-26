@@ -1,0 +1,15 @@
+{
+  "throttle": "6x CPU (CDP Emulation.setCPUThrottlingRate)",
+  "profile": "fast (plan 5.07 s)",
+  "wallMs": 7208,
+  "frames": {
+    "frames": 40,
+    "median": 66.7,
+    "p95": 200,
+    "worst": 216.6
+  },
+  "sweepDegrees": 406.6,
+  "qualityStart": 2,
+  "qualityEnd": 2,
+  "globeAvgMs": 5.6
+}

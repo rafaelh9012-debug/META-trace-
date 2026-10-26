@@ -1,5 +1,6 @@
-META trace 2.1.0-rc.1 (release candidate)
-Real local EXIF/GPS/XMP extraction with a dark-red analysis presentation: scan, reveal, coordinate settle,
-smooth map descent and pin lock, with original synthesised sounds. Explicit no-location and error states.
-Offline regional streets and world overview. No AI model or map API required.
-Built from Crimson Image Metadata 2.0.0.
+META trace 2.2.0-rc.1 (release candidate)
+Real local EXIF/GPS/XMP extraction with a dark-red analysis presentation and an interactive 3D globe: a located photo plays
+one camera path (full revolution, descent, hand-off) to a square frame exactly five miles by five miles centred on the
+embedded point, with original synthesised sounds. Explicit no-location and error states.
+Offline world overview, bundled Gainesville streets and optional offline map packages (PMTiles). No external map API or online service required.
+Built from Crimson Image Metadata 2.0.0 through 2.1.0-rc.1.

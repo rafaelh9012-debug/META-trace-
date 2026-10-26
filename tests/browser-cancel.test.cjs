@@ -23,6 +23,10 @@ function scenario(name, options, fn) {
 
 const LAT = 29 + 38 / 60 + 55.87 / 3600, LON = -(82 + 20 / 60 + 16.4 / 3600);
 const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
+const circular = (a, b) => ((b - a + 540) % 360) - 180;
+const expectFrame = B.expectFrame;
+/** The descent is the part of the sequence where the camera is going down to the target: the globe is moving, the target is fixed. */
+const inDescent = () => {const q = window.MetaTrace.snapshot().sequence; return q.running && q.phase === 'descend';};
 const title = page => B.text(page, 'statusTitle');
 const states = async page => (await page.evaluate(() => window.__sequence.map(x => x.state))).filter(s => s !== 'idle');
 const until = (page, predicate, timeout = 15000) => page.waitForFunction(predicate, null, {timeout});
@@ -77,51 +81,59 @@ scenario('a new file during the scan stops everything at once, and the old resul
   assert.equal((await B.snapshot(page)).pin, null);
 });
 
-scenario('a new file during the flight freezes the camera in place and the old result never appears', {motion: 'full'}, async ({page}) => {
+scenario('a new file during the descent stops the camera over the old target, backs the globe off, and the old result never appears', {motion: 'full'}, async ({page}) => {
   await B.choose(page, 'sample-street.jpg');
   await page.click('#analyze');
-  await until(page, () => window.MetaTrace.snapshot().flying, 20000);
-  await B.sleep(500);
+  await until(page, () => {const q = window.MetaTrace.snapshot(); return q.sequence.running && q.sequence.phase === 'descend' && q.globe.alt < 1.2e7;}, 30000);
   const mid = await B.snapshot(page);
-  assert.ok(mid.camera.zoom > 2.5 && mid.camera.zoom < 17.9, 'a flight genuinely in progress (zoom ' + mid.camera.zoom.toFixed(2) + ')');
+  assert.ok(mid.sequence.running && mid.globe.alt < 1.2e7 && mid.globe.alt > 2e4, 'a descent genuinely in progress (altitude ' + Math.round(mid.globe.alt) + ' m)');
+  assert.ok(mid.audio.voices > 0, 'the sequence sounds are playing');
   await page.evaluate(() => {window.__sequence = [];});
   await B.choose(page, 'no-gps.jpg');
   const a = await B.snapshot(page);
   assert.equal(a.flying, false, 'the flight was cancelled');
-  await B.sleep(400);
+  assert.equal(a.sequence.running, false);
+  assert.ok(Math.abs(a.globe.lat - LAT) < 0.01 && Math.abs(circular(a.globe.lon, LON)) < 0.01, 'stopped over the old target: it neither carried on nor went home');
+  assert.ok(a.globe.alt <= mid.globe.alt * 1.05 && a.globe.alt > mid.globe.alt * 0.5, 'and at about the height where it stopped (' + Math.round(a.globe.alt) + ' m)');
+  await silent(page, 'new file during the descent');
+  // A globe left close to the surface eases back to its resting height, so the next sequence starts from the whole globe.
+  await B.sleep(1300);
   const b = await B.snapshot(page);
-  assert.deepEqual(b.camera, a.camera, 'the camera stayed where it was stopped');
-  assert.ok(Math.abs(a.camera.zoom - mid.camera.zoom) < 4, 'frozen near the stopping point');
-  await assertNothingOfThePreviousRun(page, {expectTitle: 'Image ready', quietMs: 3000});
-  // And a complete good run afterwards leaves exactly one pin and ends at street scale.
+  assert.ok(b.globe.alt >= 0.97 * 19113026, 'back at resting height (' + Math.round(b.globe.alt) + ' m)');
+  assert.ok(Math.abs(b.globe.lat - a.globe.lat) < 1e-6 && Math.abs(circular(a.globe.lon, b.globe.lon)) < 1e-6, 'without turning away from where it stopped');
+  await assertNothingOfThePreviousRun(page, {expectTitle: 'Image ready', quietMs: 2500});
+  // And a complete good run afterwards leaves exactly one pin and ends in the five-mile frame.
   await B.choose(page, 'sample-street.jpg');
   await page.click('#analyze'); await B.waitDone(page, 30000);
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON) && s.camera.zoom === 18);
+  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON));
+  await expectFrame(page, LAT, LON, 'after the cancelled run: ', {renderer: 'map'});
   assert.equal(await markerCount(page), 1, 'exactly one pin on the map');
 });
 
 scenario('Clear during the flight stops it, resets the map, and the old result never appears', {motion: 'full'}, async ({page}) => {
   await B.choose(page, 'sample-street.jpg');
   await page.click('#analyze');
-  await until(page, () => window.MetaTrace.snapshot().flying, 20000);
+  await until(page, inDescent, 30000);
   assert.ok((await B.snapshot(page)).audio.voices > 0, 'the descent sound is playing');
   await page.evaluate(() => {window.__sequence = [];});
   await page.click('#clear');
   const s = await B.snapshot(page);
   assert.equal(s.flying, false);
-  assert.deepEqual([s.camera.lat, s.camera.lng, s.camera.zoom], [20, 0, 2.2], 'back on the world view');
+  assert.deepEqual([s.view, s.sequence.running, s.globe.lat, s.globe.alt], ['globe', false, 18, 19113026.4], 'back on the home globe, no sequence');
   assert.equal(s.file, null);
   await silent(page, 'Clear during the flight');
   await assertNothingOfThePreviousRun(page, {expectTitle: 'Waiting for an image', quietMs: 3500});
-  assert.deepEqual((await B.snapshot(page)).camera, {lat: 20, lng: 0, zoom: 2.2}, 'no late camera move');
+  const later = (await B.snapshot(page)).globe;
+  assert.deepEqual([later.lat, later.alt], [18, 19113026.4], 'no late camera move');
+  assert.ok(Math.abs(circular(s.globe.lon, later.lon)) < 20, 'only the slow idle turn (' + circular(s.globe.lon, later.lon).toFixed(1) + ' degrees in 3.5 s)');
 });
 
 scenario('Clear and a new file while sound is playing silence the real audio graph immediately', {motion: 'full'}, async ({page}) => {
   await B.choose(page, 'sample-street.jpg');
   assert.equal((await B.snapshot(page)).audio.state === 'none' || (await B.snapshot(page)).audio.supported, true);
   await page.click('#analyze');
-  await until(page, () => window.MetaTrace.snapshot().audio.voices > 0, 8000);
+  await until(page, () => {const m = window.MetaTrace.snapshot(); return m.presentation === 'scan' && m.audio.voices > 0;}, 8000);   // the scan sound loops; the earlier blips are short
   const playing = (await B.snapshot(page)).audio;
   assert.equal(playing.supported, true);
   assert.equal(playing.state, 'running', 'the AudioContext is running (headless, autoplay allowed)');
@@ -131,7 +143,7 @@ scenario('Clear and a new file while sound is playing silence the real audio gra
 
   await B.choose(page, 'sample-street.jpg');
   await page.click('#analyze');
-  await until(page, () => window.MetaTrace.snapshot().audio.voices > 0, 8000);
+  await until(page, () => {const m = window.MetaTrace.snapshot(); return m.presentation === 'scan' && m.audio.voices > 0;}, 8000);
   await B.choose(page, 'no-gps.jpg');
   await silent(page, 'new file');
   assert.equal((await B.snapshot(page)).audio.state, 'running', 'the context stays available for the next run');
@@ -188,7 +200,8 @@ scenario('Skip during the scan lands on the same final state as a complete run',
   assert.ok(Date.now() - t0 < 1500, 'skipped in ' + (Date.now() - t0) + ' ms');
   const s = await B.snapshot(page);
   assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON), 'exact pin');
-  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON) && s.camera.zoom === 18, 'exact street-scale camera');
+  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON), 'camera on the exact coordinate');
+  await expectFrame(page, LAT, LON, 'skipped run: ', {renderer: 'map'});
   assert.equal(s.pin.popupOpen, true);
   assert.equal(s.flying, false);
   assert.equal(s.stagePhase, 'settled');
@@ -202,13 +215,14 @@ scenario('Skip during the scan lands on the same final state as a complete run',
 scenario('Skip during the flight completes the move at once, exactly', {motion: 'full'}, async ({page}) => {
   await B.choose(page, 'sample-street.jpg');
   await page.click('#analyze');
-  await until(page, () => window.MetaTrace.snapshot().flying, 20000);
+  await until(page, inDescent, 30000);
   await B.sleep(300);
   await page.click('#skip');
   await B.waitDone(page, 3000);
   const s = await B.snapshot(page);
   assert.equal(s.flying, false);
-  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON) && s.camera.zoom === 18);
+  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON));
+  await expectFrame(page, LAT, LON, 'skipped in the descent: ', {renderer: 'map'});
   assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON));
   assert.equal(await B.content(page, 'latitude'), '29.64885278');
 });
@@ -227,7 +241,8 @@ scenario('Skip before the file has even been read waits for the report, then sho
   assert.ok(total >= 1100, 'the result cannot appear before the file was read (' + total + ' ms)');
   assert.ok(total < 3500, 'and then it appears at once, not after the 6 s sequence (' + total + ' ms)');
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && s.camera.zoom === 18);
+  assert.ok(near(s.pin.lat, LAT));
+  await expectFrame(page, LAT, LON, 'skipped before the read: ', {renderer: 'map'});
   assert.equal(await title(page), 'GPS coordinates found');
 });
 
@@ -277,7 +292,8 @@ scenario('rapid-fire: many files, Analyze, Clear and Skip in quick succession le
   await page.click('#analyze');
   await B.waitDone(page);
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON) && s.camera.zoom === 18, 'the last file is shown exactly');
+  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON), 'the last file is shown exactly');
+  await expectFrame(page, LAT, LON, 'after the rapid-fire run: ', {renderer: 'map'});
   assert.equal(await markerCount(page), 1, 'one pin only: nothing left from the earlier runs');
   assert.equal(await page.locator('#map .leaflet-interactive').count() >= 1, true);
   assert.equal(s.audio.voices === 0 || s.audio.voices <= 3, true, 'at most the closing cue is still ringing');

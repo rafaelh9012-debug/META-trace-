@@ -134,6 +134,53 @@ test('street geometry lands where Leaflet draws the same road, at zoom 17 to 20 
   }
 });
 
+test('building fills are solid wherever the footprint falls on the grid, however its rings are wound, and holes stay open', async t => {
+  if (!await ready(t)) return;
+  const r = await page.evaluate(() => {
+    // The dataset is cut into a 10 x 10 grid and each footprint is listed in every cell it touches; the visible cells' lists are
+    // then added to one path. A fill rule that counts overlaps (even-odd) would blank any footprint that is listed twice.
+    const b = META.bounds, cLon = (b[0] + b[2]) / 2, cLat = (b[1] + b[3]) / 2, dLat = m => m / 111000, dLon = m => m / 96800;
+    const square = (x, y, half, ccw = true) => {
+      const pts = [[x - half, y - half], [x + half, y - half], [x + half, y + half], [x - half, y + half], [x - half, y - half]];
+      return (ccw ? pts : pts.slice().reverse()).map(([mx, my]) => [cLon + dLon(mx), cLat + dLat(my)]);
+    };
+    const building = (rings, name) => ({type: 'Feature', properties: {kind: 'building', name}, geometry: {type: 'Polygon', coordinates: rings}});
+    const features = [
+      building([square(0, 115, 50)], 'straddles one grid line (listed in two cells)'),
+      building([square(0, 0, 200)], 'sits on a grid corner (listed in four cells)'),
+      building([square(105, -117, 40)], 'overlap A'), building([square(155, -117, 40)], 'overlap B'),
+      building([square(-600, 0, 100, true), square(-600, 0, 40, false)], 'hole, outer ring first, wound the usual way'),
+      building([square(600, 0, 100, false), square(600, 0, 40, true)], 'hole, wound the other way'),
+      building([square(0, -600, 40)], 'single cell')
+    ];
+    const map = newMap('a');
+    const layer = TraceCanvasLayer.create(L, {world: {features: []}, local: {features}, bounds: META.bounds, localLabels: [], worldLabels: [], selectLabels: () => [], pane: 'traceBase'}).addTo(map);
+    layer.prepare();
+    const read = (mx, my) => {
+      const p = map.latLngToContainerPoint([cLat + dLat(my), cLon + dLon(mx)]), c = layer._canvas, k = c.width / map.getSize().x;
+      return c.getContext('2d').getImageData(Math.round(p.x * k), Math.round(p.y * k), 1, 1).data[3];
+    };
+    const at = (mx, my) => {map.setView([cLat + dLat(my), cLon + dLon(mx)], 17, {animate: false}); layer.redraw(true);};
+    const out = {};
+    at(0, 115); out.straddle = read(0, 115);
+    at(0, 0); out.corner = [read(-100, -100), read(100, -100), read(-100, 100), read(100, 100)];
+    at(130, -117); out.overlap = {onlyA: read(80, -117), both: read(130, -117), onlyB: read(180, -117)};
+    at(-600, 0); out.holeUsual = {ring: read(-600 + 70, 0), hole: read(-600, 0)};
+    at(600, 0); out.holeReversed = {ring: read(600 + 70, 0), hole: read(600, 0)};
+    at(0, -600); out.single = read(0, -600);
+    out.zoom = map.getZoom();
+    map.remove();
+    return out;
+  });
+  const SOLID = 200;
+  assert.ok(r.straddle > SOLID, 'a footprint listed in two cells is filled (alpha ' + r.straddle + ')');
+  assert.ok(r.corner.every(a => a > SOLID), 'a footprint listed in four cells is filled at every quarter: ' + r.corner);
+  assert.ok(r.overlap.onlyA > SOLID && r.overlap.onlyB > SOLID && r.overlap.both > SOLID, 'where two footprints overlap the overlap is filled too: ' + JSON.stringify(r.overlap));
+  assert.ok(r.holeUsual.ring > SOLID && r.holeUsual.hole === 0, 'a courtyard stays open, solid around it: ' + JSON.stringify(r.holeUsual));
+  assert.ok(r.holeReversed.ring > SOLID && r.holeReversed.hole === 0, 'the same with the rings wound the other way: ' + JSON.stringify(r.holeReversed));
+  assert.ok(r.single > SOLID, 'a footprint in one cell is filled');
+});
+
 test('the world outline lands where Leaflet draws the same polygons', async t => {
   if (!await ready(t)) return;
   const result = await page.evaluate(async () => {

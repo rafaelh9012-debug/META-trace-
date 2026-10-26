@@ -1,6 +1,6 @@
 {
   "name": "meta-trace",
-  "version": "2.1.0-rc.1",
+  "version": "2.2.0-rc.1",
   "private": true,
   "description": "Local image-metadata instrument. The app itself has no runtime dependencies; Playwright is needed only to run the browser tests.",
   "scripts": {

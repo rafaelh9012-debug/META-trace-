@@ -70,7 +70,7 @@
   let pres = newPresentation(0, false);
 
   function newPresentation(gen, replay) {
-    return {gen, replay, scan: null, descend: null, scramblers: [], pin: null, accuracy: null, shown: {outcome: false, details: false, coords: false, mapCoverage: false}};
+    return {gen, replay, scan: null, descend: null, spin: null, interrupted: false, scramblers: [], pin: null, accuracy: null, shown: {outcome: false, details: false, coords: false, mapCoverage: false}};
   }
 
   /* ----------------------------------------------------------------- utilities -- */
@@ -171,6 +171,11 @@
   function applyMotion() {
     document.documentElement.dataset.motion = effectiveMotion();
     $('motion').value = effectiveMotion();
+    // Reduced motion: the globe holds still. It still answers dragging and zooming.
+    if (typeof globe !== 'undefined') {
+      globe.setMotionReduced(effectiveMotion() === 'reduced');
+      globe.setIdleRate(effectiveMotion() === 'reduced' ? 0 : GLOBE_IDLE_RATE);
+    }
   }
 
   /* --------------------------------------------------------------------- audio -- */
@@ -230,23 +235,131 @@
 
   /* ---------------------------------------------------------------------- map -- */
 
-  const map = L.map('map', {zoomControl: false, minZoom: 1, maxZoom: 20, zoomSnap: .1, zoomDelta: .5, worldCopyJump: true, fadeAnimation: false}).setView([20, 0], 2.2);
+  // zoomSnap 0: the five-mile frame needs the exact fitted zoom, not the nearest tenth.
+  const map = L.map('map', {zoomControl: false, minZoom: 1, maxZoom: 20, zoomSnap: 0, zoomDelta: .5, worldCopyJump: true, fadeAnimation: false}).setView([20, 0], 2.2);
   map.createPane('traceBase').style.zIndex = 100;
   const baseLayer = TraceCanvasLayer.create(L, {
     world: window.TRACE_WORLD_DATA, local: hasLocalData ? mapData : null, bounds: hasLocalData ? mapMeta.bounds : null,
     localLabels: window.TRACE_MAP_LABELS, worldLabels: window.TRACE_WORLD_LABELS,
     selectLabels: MapUtils.selectLabels, pane: 'traceBase'
   }).addTo(map);
-  map.attributionControl.addAttribution('World: Natural Earth · Streets: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>');
-  L.control.scale({imperial: false, position: 'bottomright', maxWidth: 90}).addTo(map);
-  new ResizeObserver(() => {map.invalidateSize({pan: false}); stage.resize();}).observe($('map'));
+  map.attributionControl.addAttribution('World: Natural Earth · Reference cities: IANA time zones · Streets: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>');
+  L.control.scale({imperial: true, metric: true, position: 'bottomright', maxWidth: 110}).addTo(map);
 
-  const director = MapDirector.create({L, map, bounds: hasLocalData ? mapMeta.bounds : null, onInterrupt() {
-    if (pres.descend) pres.descend.stop(0.2);
+  /* ------------------------------------------------------------ regional map packages -- */
+
+  // Optional map packages the person adds from a file (see "Map data"). The bundled streets work without any of this.
+  // Packages are read by byte range from the file, a few tiles at a time; nothing is loaded whole and nothing is fetched.
+  const regionManager = RegionManager.create({
+    decode: MVTDecoder.decodeTile, adapt: TileSchema.adaptTile,
+    onChange: () => baseLayer.regionsChanged(),
+    onError: error => console.error(error)
+  });
+  baseLayer.setRegions(regionManager);
+  const inBox = (b, lat, lon) => lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3];
+  const REGION_VIEW_PAD = .18;
+  /** The map view (west/east/south/north) a viewport of the map's size has when centred on `at` at `zoom`. */
+  function regionViewAround(at, zoom, pad = REGION_VIEW_PAD) {
+    const size = map.getSize(), RM = RegionManager, halfX = size.x / 2 / 256 * (1 + pad), halfY = size.y / 2 / 256 * (1 + pad);
+    const cx = RM.lonToX(at.longitude, zoom), cy = RM.latToY(at.latitude, zoom);
+    return {zoom, west: RM.xToLon(cx - halfX, zoom), east: RM.xToLon(cx + halfX, zoom), north: RM.yToLat(cy - halfY, zoom), south: RM.yToLat(cy + halfY, zoom)};
+  }
+  /** Where street detail at a point comes from: an installed package, the bundled Gainesville data, or nowhere. */
+  function streetSource(lat, lon) {
+    const pkg = regionManager.covers(lat, lon);
+    if (pkg) return {kind: 'package', pkg};
+    if (hasLocalData && inBox(mapMeta.bounds, lat, lon)) return {kind: 'bundled'};
+    return {kind: 'none'};
+  }
+  /** Starts loading the tiles the final view and the descent will need, while the globe is still turning. */
+  function prefetchRegions(location) {
+    if (!regionManager.size || !regionManager.covers(location.latitude, location.longitude)) return;
+    let zoom;
+    try {zoom = globeDirector.finalFor(location).zoom;} catch (error) {return;}
+    for (const drop of [0, 1.5, 3]) {
+      try {regionManager.ensure(regionViewAround(location, Math.max(RegionManager.DEFAULTS.minMapZoom, zoom - drop)));} catch (error) {console.error(error);}
+    }
+  }
+  /** The five-mile frame around a point as a view: 2.5 miles each way on the ground, a little more in longitude away from the equator. */
+  function frameViewAround(at, zoom) {
+    const dLat = 4023.36 / 111320, dLon = dLat / Math.max(0.05, Math.cos(at.latitude * Math.PI / 180));
+    return {zoom, west: at.longitude - dLon, east: at.longitude + dLon, south: Math.max(-85, at.latitude - dLat), north: Math.min(85, at.latitude + dLat)};
+  }
+
+  /* ------------------------------------------------------------------- globe -- */
+
+  const GM = GlobeMath;
+  const GLOBE_HOME = {lon: -25, lat: 18};
+  const GLOBE_IDLE_RATE = 3.2;                       // degrees per second while the globe waits
+  const globePack = window.TRACE_GLOBE_PACK ? GlobeData.load(window.TRACE_GLOBE_PACK) : null;
+  const mapPanel = document.querySelector('.map-panel');
+  // The shallowest the person may zoom the globe by hand: about 1.8 km per pixel, where the flat map takes over.
+  const globeUserLimit = () => GM.altForGroundScale(globe.camera.focal, 0, 1800);
+  const globe = GlobeView.create({
+    canvas: $('globeCanvas'), data: globePack, readout: $('globeReadout'),
+    width: Math.max(1, $('map').clientWidth), height: Math.max(1, $('map').clientHeight),
+    lon: GLOBE_HOME.lon, lat: GLOBE_HOME.lat, alt: GM.IDLE_ALT,
+    onUserInput: () => globeDirector.interrupt(),
+    onHome: () => recenter(),
+    onZoomPastLimit: from => {if (!globeDirector.running) globeDirector.showMap({fadeMs: effectiveMotion() === 'reduced' ? 180 : 450, from});}
+  });
+  globe.setUserMinAlt(globeUserLimit());
+
+  // Where the bundled street data is. Installed regional packages (see Map data) add boxes here.
+  const coverageBoxes = () => (hasLocalData ? [mapMeta.bounds] : []).concat(regionManager.coverageBoxes());
+  const mapDirector = MapDirector.create({L, map, bounds: coverageBoxes, zoomFor: loc => globeDirector.finalFor(loc).zoom, onInterrupt() {
     toast('The map is yours now. Use Recenter to return to the GPS position.');
   }});
-  // Build the street geometry once, during idle time, so the descent never stalls to build it.
-  (window.requestIdleCallback || (cb => setTimeout(cb, 300)))(() => {try {baseLayer.prepare();} catch (error) {console.error(error);}});
+  const globeDirector = GlobeDirector.create({
+    L, map, mapDirector, globe, panel: mapPanel, frame: $('frame5'), idleRate: GLOBE_IDLE_RATE,
+    userMinAlt: globeUserLimit,
+    // The heading above and the coverage note below keep bands of the pane (CSS custom properties); the frame stays clear of them.
+    reserve: () => {
+      const cs = getComputedStyle(mapPanel), px = name => {const v = parseFloat(cs.getPropertyValue(name)); return Number.isFinite(v) ? v : 0;};
+      return {top: px('--reserve-top'), bottom: px('--reserve-bottom')};
+    },
+    onError: error => console.error(error),
+    hooks: {
+      onView: view => syncViewControls(view),
+      onPhase: (name, info) => onFlightPhase(name, info),
+      onDetail: level => onFlightDetail(level),
+      onInterrupt: () => onFlightInterrupt()
+    }
+  });
+  // The one object the rest of the app talks to. Classification stays with the map director; every camera move goes
+  // through the globe director, which owns both renderers.
+  const director = {
+    classify: loc => mapDirector.classify(loc),
+    fly: (loc, o) => globeDirector.fly(loc, o),
+    jump: (loc, o) => globeDirector.jump(loc, o),
+    rise: o => globeDirector.rise(o),
+    rest: () => globeDirector.rest(),
+    recenter: (loc, o) => globeDirector.recenter(loc, o),
+    cancel: why => {const a = globeDirector.cancel(why), b = mapDirector.cancel(why); return a || b;},
+    get view() {return globeDirector.view;},
+    get flying() {return globeDirector.running || mapDirector.flying;},
+    get flightId() {return mapDirector.flightId;}
+  };
+  new ResizeObserver(() => {
+    map.invalidateSize({pan: false});
+    const box = $('map').getBoundingClientRect();
+    globe.resize(box.width, box.height);
+    if (!globeDirector.running && globeDirector.view === 'globe') globe.setUserMinAlt(globeUserLimit());
+    stage.resize();
+    globeDirector.refit();
+  }).observe($('map'));
+  // Zooming the flat map far out hands back to the globe at the same ground scale.
+  map.on('zoomend', () => {
+    if (globeDirector.busy || globeDirector.view !== 'map') return;
+    const c = map.getCenter();
+    if (GM.mercatorGroundScale(c.lat, map.getZoom()).mean > 6000) globeDirector.showGlobe({fadeMs: effectiveMotion() === 'reduced' ? 180 : 450, match: true});
+  });
+  globe.start();
+  // Build the street geometry once, early, so the descent never stalls to build it. The globe animates continuously, so a bare
+  // idle callback can be postponed indefinitely and then land in the middle of a flight (measured: a 130-260 ms stall that
+  // made the camera jump). The timeout bounds the wait; the presentation also calls prepare() before it starts (plan hook).
+  const whenIdle = window.requestIdleCallback ? cb => window.requestIdleCallback(cb, {timeout: 1000}) : cb => setTimeout(cb, 300);
+  whenIdle(() => {try {baseLayer.prepare();} catch (error) {console.error(error);}});
 
   /* ---------------------------------------------------------------- scan stage -- */
 
@@ -258,18 +371,24 @@
   /* --------------------------------------------------------- presentation hooks -- */
 
   const kindOf = report => report.status === 'located' ? 'located' : report.status === 'no_location' ? 'neutral' : 'warning';
-  const isMappable = plan => plan.kind === 'regional' || plan.kind === 'overview';
+  // Near a pole the flat map cannot draw, but the globe can, so every valid coordinate has a final view.
+  const isMappable = plan => plan.kind === 'regional' || plan.kind === 'overview' || plan.kind === 'polar';
 
   const hooks = {
     enter(name, ctx) {
       if (stale(ctx.gen)) return;
       switch (name) {
-        case 'acquire': beginPresentation(ctx); break;
+        case 'acquire': try {baseLayer.prepare();} catch (error) {console.error(error);} beginPresentation(ctx); break;   // street index built before any camera move
         case 'scan': {
           stage.scan(ctx.profile);
           pres.scan = play('scan', {gen: ctx.gen, maxSeconds: 12});
           const wantsFlight = !ctx.replay || (state.report && state.report.status === 'located');
-          if (ctx.profile.animateCamera && wantsFlight) director.widen({animate: true, duration: Math.min(1.1, 0.9 * (ctx.profile.scan + ctx.profile.reveal) / 1000)});   // done before the readout appears
+          // A replay starts from the street map, and a cancelled descent leaves the globe close to the surface: either way,
+          // back up to the whole globe while the scan runs, before the readout, so the revolution always starts from it.
+          if (wantsFlight && globeDirector.needsRise) {
+            if (ctx.profile.animateCamera) director.rise({duration: Math.min(1.6, 0.9 * (ctx.profile.scan + ctx.profile.reveal) / 1000)});
+            else if (director.view === 'map') globeDirector.showGlobe({fadeMs: 180});
+          }
           break;
         }
         case 'reveal':
@@ -287,16 +406,22 @@
         case 'fly':
           stage.fly();
           hideNotice();
-          if (ctx.profile.animateCamera) pres.descend = play('descend', {gen: ctx.gen, duration: ctx.profile.fly / 1000});
-          break;
+          break;                      // the sounds start with the flight itself (see the fly hook)
         case 'lock': {
           stage.lock(ctx.profile);
           if (pres.descend) pres.descend.stop(0.15);
+          if (pres.spin) pres.spin.stop(0.15);
           const plan = director.classify(ctx.report.location);
           if (isMappable(plan)) {
-            placePin(ctx.report, {animate: ctx.profile.theatrics});
+            if (plan.kind !== 'polar' && !pres.pin) placePin(ctx.report, {animate: false});
+            // If the person took the camera, the result is shown but no lock is staged on a view they are no longer in.
+            if (!pres.interrupted) {
+              const final = globeDirector.final;
+              if (final && final.renderer === 'globe') globeDirector.lockEffect(ctx.profile.lock);
+              else armPinLock(ctx.profile);
+              play('lock', {gen: ctx.gen});
+            }
             presentMapCoverage(ctx.report, plan, ctx);
-            play('lock', {gen: ctx.gen});
           }
           break;
         }
@@ -307,11 +432,16 @@
     },
     plan(ctx) {
       const plan = director.classify(ctx.report.location);
-      if (plan.kind === 'regional') try {baseLayer.prepare();} catch (error) {console.error(error);}
+      try {baseLayer.prepare();} catch (error) {console.error(error);}     // a no-op once built; never mid-flight
+      if (isMappable(plan) && plan.kind !== 'polar') prefetchRegions(ctx.report.location);   // tiles load while the globe turns
       return {fly: isMappable(plan)};
     },
     fly(ctx) {
-      return director.fly(ctx.report.location, {animate: ctx.profile.animateCamera, duration: ctx.profile.fly / 1000});
+      const location = ctx.report.location;
+      revealMapPanel();
+      // Reduced motion: no camera travel, only a short cross-fade to the final view.
+      if (!ctx.profile.animateCamera) {director.jump(location, {fadeMs: 200}); return 'arrived';}
+      return director.fly(location, {duration: ctx.profile.fly / 1000, revolutions: 1, onStart: plan => startFlightSounds(ctx, plan)});
     },
     finish(ctx) {presentFinal(ctx.report, {instant: true, ctx});},
     recover(ctx) {
@@ -329,6 +459,51 @@
       }
     }
   };
+
+  /** The coordinate card opens over the pin by itself only when there is room above the pin for it. On a short pane it would
+   *  sit on the five-mile frame and its label; the coordinates are also on the map, in the Location panel, and one click away. */
+  function popupFits() {
+    const room = mapPanel.clientHeight / 2 - (parseFloat(getComputedStyle(mapPanel).getPropertyValue('--reserve-top')) || 0);
+    return room >= 200;
+  }
+
+  /** In the stacked layouts (under 1181 px) the map sits below the stage. A flight that plays below the fold is not seen,
+   *  so once the coordinates have been read out the map is brought into view: smoothly when motion is allowed, and only when
+   *  it is not already fully visible. */
+  function revealMapPanel() {
+    try {
+      const r = mapPanel.getBoundingClientRect(), vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.top >= 0 && r.bottom <= vh) return;
+      mapPanel.scrollIntoView({block: r.height >= vh ? 'start' : 'nearest', behavior: effectiveMotion() === 'reduced' ? 'auto' : 'smooth'});
+    } catch (error) {/* scrolling is a courtesy; the sequence does not depend on it */}
+  }
+
+  /* The sounds follow the real camera. The spin cue is shaped by the planned rotation speed, the descent starts with the
+     descent, one soft blip marks each level of detail, and the lock closes the sequence. */
+  function startFlightSounds(ctx, plan) {
+    const samples = 48, rates = [];
+    let peak = 0;
+    for (let i = 0; i <= samples; i++) {const r = Math.max(0, GM.spinRateAt(plan, plan.spinT * i / samples)); rates.push(r); peak = Math.max(peak, r);}
+    pres.spin = play('spin', {gen: ctx.gen, duration: plan.spinT, curve: rates.map(r => peak > 0 ? r / peak : 0)});
+  }
+  function onFlightPhase(name, info) {
+    if (stale(pres.gen) || !controller.running) return;
+    if (name === 'descend' && globeDirector.plan) {
+      const plan = globeDirector.plan;
+      pres.descend = play('descend', {gen: pres.gen, duration: Math.max(.5, plan.T - plan.descT0)});
+    } else if (name === 'handoff' && info.to === 'map' && state.report && state.report.location && !pres.pin) {
+      placePin(state.report, {animate: false});        // the marker is already on the map as it fades in
+    }
+  }
+  function onFlightDetail(level) {
+    if (stale(pres.gen) || !controller.running || level > 4) return;
+    play('detail', {gen: pres.gen, index: level - 1});
+  }
+  function onFlightInterrupt() {
+    pres.interrupted = true;
+    audio.stopGeneration(pres.gen, 0.15);
+    toast('The view is yours now. Use Recenter to return to the GPS position.');
+  }
 
   const controller = PresentationController.create({
     hooks,
@@ -436,30 +611,86 @@
     }
   }
 
+  /** The coverage note: text, and optionally a button that opens the Map data dialog. */
+  function setCoverage(text, action) {
+    const note = $('coverageNote');
+    note.textContent = text;
+    if (action) {
+      const button = node('button', 'coverage-action', action);
+      button.type = 'button';
+      button.id = 'coverageAdd';
+      button.addEventListener('click', () => openMapData(button));
+      note.append(button);
+    }
+  }
+  /** What the person is told about the street detail at a located point. Only what the loaded data supports. */
+  function coverageFor(location) {
+    const src = streetSource(location.latitude, location.longitude);
+    if (src.kind === 'package') {
+      const info = src.pkg.info, name = src.pkg.name || info.name || 'the installed map package';
+      const credit = info.attribution ? ' Map data: ' + info.attribution.replace(/[.\s]+$/, '').slice(0, 160) + '.' : '';
+      const lead = [info.synthetic ? 'Generated test pattern, not a map of this place.' : '',
+        info.maxZoom >= 14 ? (info.synthetic ? '' : 'Streets and buildings from "' + name + '".')
+          : '"' + name + '" is coarse here (zoom ' + info.maxZoom + ' at most), so roads and buildings may be missing.'].filter(Boolean).join(' ');
+      return {kind: 'package', subtitle: 'Five-mile view with streets from "' + name + '".', badge: 'OFFLINE / STREETS',
+        note: lead + credit + ' Coordinates come from the image.'};
+    }
+    if (src.kind === 'bundled') {
+      return {kind: 'bundled', subtitle: 'Five-mile view with Gainesville street data.', badge: 'OFFLINE / STREETS',
+        note: (mapMeta.features || 0).toLocaleString() + ' local map features cover the middle of the frame. Coordinates come from the image.'};
+    }
+    return {kind: 'none', subtitle: 'Five-mile view centered on the GPS point.', badge: 'OFFLINE / OUTLINES',
+      note: 'No offline roads or buildings are installed for this area, so only coastlines, borders and the exact GPS point are drawn. Nothing is drawn that is not in the data.',
+      action: 'Add map data'};
+  }
+  function idleCoverageNote() {
+    const added = regionManager.packages(), shown = added.slice(0, 2).map(p => p.name + (p.attribution ? ' (' + p.attribution.slice(0, 80) + ')' : ''));
+    return 'Offline globe with coastlines, national borders and reference cities. Street detail is bundled for Gainesville and the University of Florida.'
+      + (added.length ? ' Added map data: ' + shown.join('; ') + (added.length > 2 ? ' and ' + (added.length - 2) + ' more' : '') + '.' : '');
+  }
+
   function presentMapCoverage(report, plan, ctx) {
     if (pres.shown.mapCoverage) return;
     pres.shown.mapCoverage = true;
-    const p = report.location, regional = plan.kind === 'regional';
+    const p = report.location, c = coverageFor(p), gen = generation;
     hideNotice();
     setText('mapCoordinate', pair(p));
     $('mapCoordinate').hidden = false;
     setText('mapTitle', 'Embedded GPS');
-    setText('mapSubtitle', regional ? 'Detailed offline street geometry for Gainesville and the University of Florida.' : 'Exact GPS point on an offline world overview.');
-    setText('coverageBadge', regional ? 'OFFLINE / STREETS' : 'OFFLINE / OVERVIEW');
-    setText('coverageNote', regional
-      ? (mapMeta.features || 0).toLocaleString() + ' local map features. Coordinates come from the image.'
-      : 'Detailed offline streets are not bundled for this location, so the exact point stays on the world overview. Street detail is included for Gainesville and the University of Florida.');
-    if (!(ctx && ctx.replay)) log(regional ? 'GPS marker placed on the local street map.' : 'GPS marker placed on the offline world overview.', 'ok');
+    setText('mapSubtitle', c.subtitle);
+    setText('coverageBadge', c.badge);
+    setCoverage(c.note, c.action);
+    if (!(ctx && ctx.replay)) log(c.kind === 'none' ? 'GPS marker placed on the offline globe and outline map; no local streets for this area.'
+      : c.kind === 'package' ? 'GPS marker placed on the map from an installed map package.' : 'GPS marker placed on the local street map.', 'ok');
+    if (c.kind === 'package') verifyPackageCoverage(report, gen);
+  }
+  /**
+   * An installed package covers the point by its bounds, but a bounding box is not data. Once its tiles have loaded for the
+   * final view, say so if nothing was found there.
+   */
+  function verifyPackageCoverage(report, gen) {
+    const location = report.location;
+    regionManager.whenIdle(6000).then(() => {
+      if (stale(gen) || !state.report || state.report.location !== location) return;
+      const at = regionManager.featuresIn(frameViewAround(location, map.getZoom()));
+      if (!at.settled || at.features) return;
+      const src = streetSource(location.latitude, location.longitude);
+      const name = src.kind === 'package' ? src.pkg.name : 'The installed map package';
+      setCoverage('"' + name + '" covers this area on paper but has no map features in this frame, so only outlines and the GPS point are drawn. Nothing is drawn that is not in the data.', 'Map data');
+      setText('coverageBadge', 'OFFLINE / OUTLINES');
+    }, error => console.error(error));
   }
 
   function presentPolar(report, ctx) {
     if (pres.shown.mapCoverage) return;
     pres.shown.mapCoverage = true;
-    showNotice('GPS found near a pole', 'The coordinates are valid, but this map projection cannot accurately display latitudes above 85.051°. The exact coordinates remain available in the results.', 'i-locate');
-    setText('mapSubtitle', 'Coordinate lies outside the map projection range.');
-    setText('coverageBadge', 'GPS / POLAR');
-    $('mapCoordinate').hidden = true;
-    if (!(ctx && ctx.replay)) log('Coordinates are outside the Web Mercator display range.', 'warning');
+    hideNotice();
+    setText('mapCoordinate', pair(report.location));
+    $('mapCoordinate').hidden = false;
+    setText('mapSubtitle', 'Five-mile view on the globe. The flat map cannot draw latitudes above 85.051°.');
+    setText('coverageBadge', 'OFFLINE / GLOBE');
+    setCoverage('Near a pole the globe stays the map. Only coastlines and borders from the bundled data are drawn; there are no roads or buildings here.');
+    if (!(ctx && ctx.replay)) log('GPS marker placed on the globe; the coordinates are outside the flat map range (85.051°).', 'ok');
   }
 
   function presentFinal(report, {instant, ctx}) {
@@ -473,11 +704,14 @@
         mapped = true;
         if (instant) {
           if (plan.kind === 'regional') try {baseLayer.prepare();} catch (error) {console.error(error);}
-          director.jump(report.location);
+          director.jump(report.location, {fadeMs: ctx && ctx.profile && !ctx.profile.animateCamera ? 200 : 0});
         }
-        if (!pres.pin) placePin(report, {animate: false});
-        presentMapCoverage(report, plan, ctx);
-        if (pres.pin) pres.pin.openPopup();
+        if (plan.kind === 'polar') presentPolar(report, ctx);
+        else {
+          if (!pres.pin) placePin(report, {animate: false});
+          presentMapCoverage(report, plan, ctx);
+          if (pres.pin && globeDirector.view === 'map' && popupFits()) pres.pin.openPopup();
+        }
       } else {
         presentPolar(report, ctx);
       }
@@ -605,11 +839,16 @@
     return box;
   }
 
+  /** Starts the target-lock animation on a pin that has been waiting as a plain reticle. */
+  function armPinLock(profile) {
+    const element = pres.pin && pres.pin.getElement && pres.pin.getElement(), pin = element && element.querySelector('.trace-pin');
+    if (pin) pin.dataset.lock = profile.theatrics ? 'true' : 'done';
+  }
   function placePin(report, {animate}) {
     removePin();
     const p = report.location;
     // The pin and the accuracy circle sit exactly on the recorded coordinate. They are never snapped to a road.
-    const icon = L.divIcon({className: 'trace-pin-icon', iconSize: [64, 64], iconAnchor: [32, 32], html: '<div class="trace-pin" data-lock="' + (animate ? 'true' : 'done') + '">' + RETICLE + '</div>'});
+    const icon = L.divIcon({className: 'trace-pin-icon', iconSize: [64, 64], iconAnchor: [32, 32], html: '<div class="trace-pin" data-lock="' + (animate ? 'true' : 'wait') + '">' + RETICLE + '</div>'});
     const marker = L.marker([p.latitude, p.longitude], {title: 'Embedded image GPS', zIndexOffset: 700, icon}).addTo(map);
     marker.bindPopup(popupContent(report), {autoPan: false, offset: [0, -26], maxWidth: 300});
     pres.pin = marker;
@@ -730,6 +969,7 @@
   /** Empties every panel that shows results. The file, its preview and the report object stay. */
   function resetResultPanels() {
     removePin();
+    globeDirector.hideFrame();
     hideNotice();
     $('coordinates').hidden = true;
     $('candidates').hidden = true;
@@ -749,8 +989,8 @@
     $('resultEmpty').hidden = false;
     setText('mapTitle', 'Embedded GPS');
     setText('mapSubtitle', 'Select an image to locate its GPS tags.');
-    setText('coverageBadge', 'OFFLINE MAP');
-    setText('coverageNote', 'World outlines are included. Street detail is bundled for the Gainesville and University of Florida area.');
+    setText('coverageBadge', globeDirector.view === 'map' ? 'OFFLINE MAP' : 'OFFLINE GLOBE');
+    setCoverage(idleCoverageNote());
     for (const id of ['latitude', 'longitude', 'latitudeFx', 'longitudeFx']) setText(id, '');
   }
 
@@ -789,6 +1029,9 @@
     state.startedAt = 0;
     state.analysis = 'selected';
     resetResultPanels();
+    globe.setMarker(null);
+    if (globeDirector.view === 'map') globeDirector.showGlobe({fadeMs: effectiveMotion() === 'reduced' ? 180 : 320});
+    else globeDirector.relax(effectiveMotion() === 'reduced' ? 0 : 900);       // a descent cancelled by this very choice
     resetLog();
     setText('elapsed', '—');
     revokePreview();
@@ -885,6 +1128,10 @@
     setStatus('Waiting for an image', 'Your file stays on this device.', 'neutral');
     map.closePopup();
     map.setView([20, 0], 2.2, {animate: false});
+    globe.setMarker(null);
+    globeDirector.showGlobe({fadeMs: 0});
+    globe.setCamera({lon: GLOBE_HOME.lon, lat: GLOBE_HOME.lat, alt: GM.IDLE_ALT});
+    setText('coverageBadge', 'OFFLINE GLOBE');
     document.body.dataset.presentation = 'idle';
     syncControls();
     announce('Cleared. Waiting for an image.');
@@ -896,9 +1143,47 @@
   }
 
   function recenter() {
-    const report = state.report;
-    if (!report || !report.location || controller.running) return;
-    director.recenter(report.location, {animate: effectiveMotion() !== 'reduced'});
+    if (controller.running) return;
+    const report = state.report, animate = effectiveMotion() !== 'reduced';
+    if (report && report.location && isMappable(director.classify(report.location))) {
+      director.recenter(report.location, {animate});
+      return;
+    }
+    // Nothing located: bring the globe back to its home view.
+    if (globeDirector.view === 'map') {globeDirector.showGlobe({fadeMs: animate ? 320 : 180}); return;}
+    const cam = globe.getCamera();
+    globe.markUserActive();
+    if (animate) globe.tweenTo({lat: GLOBE_HOME.lat, alt: GM.IDLE_ALT}, 900);
+    else globe.setCamera({lat: GLOBE_HOME.lat, alt: GM.IDLE_ALT});
+  }
+
+  function syncViewControls(view) {
+    const toMap = view === 'globe';       // the globe is showing, so the toggle's job is to go to the street map
+    useIcon('viewToggleIcon', toMap ? 'i-streets' : 'i-globe');
+    $('viewToggle').setAttribute('aria-label', toMap ? 'Switch to street map' : 'Switch to globe');
+    $('viewToggle').title = toMap ? 'Switch to street map' : 'Switch to globe';
+    $('map').setAttribute('tabindex', toMap ? '-1' : '0');
+    $('map').setAttribute('aria-hidden', String(toMap));
+    $('globeCanvas').setAttribute('aria-hidden', String(!toMap));
+    $('globeCanvas').setAttribute('tabindex', toMap ? '0' : '-1');
+    if (!state.report || !state.report.location) setText('coverageBadge', toMap ? 'OFFLINE GLOBE' : 'OFFLINE MAP');
+  }
+  function toggleView() {
+    if (controller.running) return;
+    const reduced = effectiveMotion() === 'reduced';
+    if (globeDirector.view === 'globe') globeDirector.showMap({fadeMs: reduced ? 180 : 450});
+    else if (reduced) globeDirector.showGlobe({fadeMs: 180});
+    else globeDirector.rise({duration: 1.6});
+  }
+  /** The zoom buttons act on whichever renderer is in view. */
+  function zoomBy(factor) {
+    globeDirector.interrupt();             // the person took the camera: stops a flight, its sounds and the five-mile frame
+    director.cancel('interrupted');
+    if (globeDirector.view === 'map') {map[factor < 1 ? 'zoomIn' : 'zoomOut'](); return;}
+    const cam = globe.getCamera(), alt = cam.alt * factor;
+    globe.markUserActive();
+    if (alt < globeUserLimit()) globeDirector.showMap({fadeMs: effectiveMotion() === 'reduced' ? 180 : 450, from: {lon: cam.lon, lat: cam.lat, alt}});
+    else globe.tweenTo({alt: Math.min(alt, GM.MAX_ALT)}, 380);
   }
 
   async function copyCoordinates() {
@@ -943,12 +1228,14 @@
     $('replay').disabled = !(state.report && !busy);
     $('cleanView').disabled = !hasFile;
     $('clear').disabled = !hasFile;
-    $('recenter').disabled = !(located && pres.pin) || controller.running;
+    $('recenter').disabled = controller.running;
+    $('viewToggle').disabled = controller.running;
+    $('mapSkip').hidden = !controller.running;
     document.body.setAttribute('aria-busy', String(busy));
     document.body.dataset.analysis = state.analysis;
     // A focused control that has just been disabled would strand keyboard users: move focus on.
-    if (before && before.disabled) {
-      const next = ['replay', 'analyze', 'changeImage'].map($).find(b => !b.disabled);
+    if (before && (before.disabled || before.hidden)) {
+      const next = (before.id === 'mapSkip' ? ['recenter', 'replay', 'analyze', 'changeImage'] : ['replay', 'analyze', 'changeImage']).map($).find(b => !b.disabled);
       if (next) next.focus({preventScroll: true});
     }
   }
@@ -971,14 +1258,16 @@
 
   $('analyze').addEventListener('click', startAnalysis);
   $('skip').addEventListener('click', skip);
+  $('mapSkip').addEventListener('click', skip);
   $('changeImage').addEventListener('click', chooseImage);
   $('replay').addEventListener('click', replay);
   $('cleanView').addEventListener('click', toggleClean);
   $('clear').addEventListener('click', clearAll);
   $('tagSearch').addEventListener('input', () => renderTags({animate: false}));
-  $('zoomIn').addEventListener('click', () => {director.cancel('interrupted'); map.zoomIn();});
-  $('zoomOut').addEventListener('click', () => {director.cancel('interrupted'); map.zoomOut();});
+  $('zoomIn').addEventListener('click', () => zoomBy(1 / 1.6));
+  $('zoomOut').addEventListener('click', () => zoomBy(1.6));
   $('recenter').addEventListener('click', recenter);
+  $('viewToggle').addEventListener('click', toggleView);
   $('copyCoordinates').addEventListener('click', copyCoordinates);
   $('exportReport').addEventListener('click', exportReport);
   $('fullscreen').addEventListener('click', async () => {
@@ -1037,6 +1326,9 @@
           camera: {lat: c.lat, lng: c.lng, zoom: map.getZoom()},
           flying: director.flying,
           flightId: director.flightId,
+          view: globeDirector.view,
+          sequence: globeDirector.snapshot(),
+          globe: {...globe.getCamera(), zoom: globe.zoom, quality: globe.quality, gridStep: globe.gridStep, frames: globe.stats.frames, lastMs: globe.stats.lastMs, avgMs: globe.stats.avgMs, size: globe.size},
           pin: pres.pin ? {lat: pres.pin.getLatLng().lat, lng: pres.pin.getLatLng().lng, popupOpen: pres.pin.isPopupOpen()} : null,
           accuracy: pres.accuracy ? {lat: pres.accuracy.getLatLng().lat, lng: pres.accuracy.getLatLng().lng, radius: pres.accuracy.getRadius()} : null,
           mapNotice: $('mapNotice').hidden ? null : $('mapNoticeTitle').textContent,
@@ -1044,11 +1336,190 @@
           stagePhase: stage.phase,
           stageActive: stage.active,
           audio: audio.snapshot(),
-          layer: {...baseLayer.stats}
+          layer: {...baseLayer.stats},
+          regions: {...regionManager.snapshot(), packages: regionManager.packages().map(p => ({id: p.id, name: p.name, bounds: p.bounds, minZoom: p.minZoom, maxZoom: p.maxZoom, bytes: p.bytes}))},
+          mapData: {persistent: mapPackages.store ? mapPackages.store.persistent : null, restored: mapPackages.restored, open: mapDataDialog.open, listed: mapPackages.list.length, faults: [...mapPackages.faults.values()]}
         };
       }
     })
   });
+
+  /* ------------------------------------------------------------------ map data dialog -- */
+
+  const KEEP_MAX_BYTES = 512 * 1048576;               // larger files are used from where they are, never copied automatically
+  const mapPackages = {store: null, list: [], faults: new Map(), opener: null, busy: false, restored: false, keepTouched: false};
+  const mapDataDialog = $('mapDataDialog');
+  const trim0 = text => text.replace(/\.0+$/, '');
+  const formatBytes = n => n >= 1073741824 ? trim0((n / 1073741824).toFixed(2)) + ' GB' : n >= 1048576 ? trim0((n / 1048576).toFixed(1)) + ' MB' : n >= 1024 ? Math.round(n / 1024) + ' KB' : n + ' B';
+  const degrees = (v, pos, neg) => Math.abs(v).toFixed(Math.abs(v) < 1 ? 3 : 2) + '° ' + (v < 0 ? neg : pos);
+  const describeBounds = b => degrees(b[1], 'N', 'S') + ' to ' + degrees(b[3], 'N', 'S') + ', ' + degrees(b[0], 'E', 'W') + ' to ' + degrees(b[2], 'E', 'W');
+
+  function mapDataStatus(text, kind) {
+    const element = $('mapDataStatus');
+    element.textContent = text;
+    if (kind) element.dataset.kind = kind; else delete element.dataset.kind;
+  }
+  function dataItem(name, facts, credit, flags, actions, fault) {
+    const li = node('li');
+    const title = node('span', 'data-name', name);
+    for (const f of flags || []) title.append(node('span', 'data-flag' + (f.ok ? ' is-ok' : ''), f.text));
+    li.append(title);
+    if (actions) li.append(actions);
+    li.append(node('span', 'data-facts', facts));
+    if (credit) li.append(node('span', 'data-credit', credit));
+    if (fault) li.append(node('span', 'data-fault', fault));
+    return li;
+  }
+  function renderMapData() {
+    const bundled = $('mapDataBundled');
+    bundled.replaceChildren(dataItem('World outlines and reference cities',
+      'Whole world · coastlines and country borders only · 1:110 m',
+      'Natural Earth (public domain). Reference cities: IANA time zone database.', [{text: 'Built in', ok: true}]));
+    if (hasLocalData) {
+      bundled.append(dataItem('Gainesville, Florida streets and buildings',
+        describeBounds(mapMeta.bounds) + ' · ' + (mapMeta.features || 0).toLocaleString() + ' features' + (mapMeta.dataDate ? ' · data dated ' + mapMeta.dataDate : ''),
+        '© OpenStreetMap contributors, Open Database License.', [{text: 'Built in', ok: true}]));
+    }
+    const list = $('mapDataList'), loaded = new Map(regionManager.packages().map(p => [p.id, p]));
+    list.replaceChildren();
+    for (const rec of mapPackages.list) {
+      const info = rec.info || {}, live = loaded.get(rec.id), fault = mapPackages.faults.get(rec.id);
+      const flags = [{text: rec.persisted ? 'Saved in this browser' : 'This visit only', ok: true}];
+      if (info.synthetic) flags.push({text: 'Test pattern, not a real map'});
+      const facts = describeBounds(info.bounds || [0, 0, 0, 0]) + ' · zoom ' + info.minZoom + '–' + info.maxZoom + ' · ' + formatBytes(rec.size)
+        + (info.tiles ? ' · ' + info.tiles.toLocaleString() + ' tiles' : '');
+      const credit = [info.attribution, info.licenseNote].filter(Boolean).join(' · ');
+      const remove = node('button', 'btn btn-quiet', 'Remove');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', 'Remove ' + rec.name);
+      remove.addEventListener('click', () => removeMapPackage(rec.id));
+      const wrap = node('span', 'data-actions');
+      wrap.append(remove);
+      list.append(dataItem(rec.name, facts, credit, flags, wrap, fault ? 'Not in use: ' + fault : (live ? '' : 'Not in use.')));
+    }
+    $('mapDataEmpty').hidden = mapPackages.list.length > 0;
+    const store = mapPackages.store, keep = $('mapDataKeep');
+    const canKeep = !!(store && store.persistent);
+    keep.disabled = !canKeep;
+    if (!canKeep) keep.checked = false;
+    else if (!mapPackages.keepTouched) keep.checked = true;
+    setText('mapDataKeepText', canKeep ? 'Keep a copy in this browser so it is here next time (files up to ' + formatBytes(KEEP_MAX_BYTES) + '; a copy uses that much disk space)'
+      : 'Packages last for this visit only: this browser is not offering storage here');
+    $('mapDataPick').disabled = mapPackages.busy;
+  }
+  async function renderStorageLine() {
+    const store = mapPackages.store;
+    if (!store) {setText('mapDataStorage', ''); return;}
+    if (!store.persistent) {setText('mapDataStorage', store.reason); return;}
+    const q = await store.quota();
+    setText('mapDataStorage', q ? 'Browser storage: ' + formatBytes(q.usage) + ' used, ' + formatBytes(q.free) + ' free.' : '');
+  }
+  async function refreshPackages() {
+    if (mapPackages.store) mapPackages.list = await mapPackages.store.list();
+    renderMapData();
+  }
+  /** After packages change, a result already on screen shows what the data now supports. */
+  function refreshCoverage() {
+    const report = state.report;
+    if (!report) {setCoverage(idleCoverageNote()); return;}
+    if (report.status !== 'located' || !report.location || !pres.shown.mapCoverage || globeDirector.running) return;
+    if (director.classify(report.location).kind === 'polar') return;
+    const c = coverageFor(report.location);
+    setText('mapSubtitle', c.subtitle);
+    setText('coverageBadge', c.badge);
+    setCoverage(c.note, c.action);
+    if (c.kind === 'package') verifyPackageCoverage(report, generation);
+  }
+
+  async function addMapPackage(file) {
+    if (mapPackages.busy) return;
+    const store = mapPackages.store;
+    if (!store) {mapDataStatus('Map data storage is still starting. Try again in a moment.', 'error'); return;}
+    mapPackages.busy = true;
+    renderMapData();
+    try {
+      mapDataStatus('Reading ' + file.name + '…');
+      const source = PMTiles.blobSource(file);
+      let info;
+      try {info = await PMTiles.describe(source);}
+      catch (error) {mapDataStatus(file.name + ' was not added. ' + (error && error.message ? error.message : error), 'error'); return;}
+      if (info.layers.length && !TileSchema.recognisesLayers(info.layers)) {
+        mapDataStatus(file.name + ' was not added. Its layers (' + info.layers.join(', ') + ') are not ones this map draws: roads, buildings, water, places or points of interest.', 'error');
+        return;
+      }
+      const id = PackStore.idFor(file), reader = await PMTiles.open(source);
+      const keepWanted = $('mapDataKeep').checked && store.persistent, keep = keepWanted && file.size <= KEEP_MAX_BYTES;
+      let note = '';
+      try {await store.add({id, name: info.name, info, blob: file, remember: keep});}
+      catch (error) {
+        await store.add({id, name: info.name, info, blob: file, remember: false});
+        note = ' A copy could not be saved (' + (error && error.message ? error.message : error) + '), so it lasts for this visit only.';
+      }
+      if (keepWanted && !keep) note = ' It is larger than ' + formatBytes(KEEP_MAX_BYTES) + ', so no copy was saved and it lasts for this visit only.';
+      if (regionManager.packages().some(p => p.id === id)) regionManager.removePackage(id);
+      mapPackages.faults.delete(id);
+      regionManager.addPackage({id, name: info.name, reader, info});
+      await refreshPackages();
+      refreshCoverage();
+      mapDataStatus('Added "' + info.name + '", ' + describeBounds(info.bounds) + '.' + (info.synthetic ? ' This is a generated test pattern, not a map of the place it covers.' : '') + note, 'ok');
+      announce('Map package added: ' + info.name);
+    } catch (error) {
+      console.error(error);
+      mapDataStatus(file.name + ' was not added. ' + (error && error.message ? error.message : error), 'error');
+    } finally {
+      mapPackages.busy = false;
+      renderMapData();
+      renderStorageLine();
+    }
+  }
+  async function removeMapPackage(id) {
+    const rec = mapPackages.list.find(r => r.id === id);
+    regionManager.removePackage(id);
+    mapPackages.faults.delete(id);
+    try {await mapPackages.store.remove(id);} catch (error) {console.error(error);}
+    await refreshPackages();
+    refreshCoverage();
+    mapDataStatus('Removed ' + (rec ? '"' + rec.name + '"' : 'the package') + '. Your file on disk was not touched.', 'ok');
+    announce('Map package removed');
+    renderStorageLine();
+  }
+  function openMapData(opener) {
+    mapPackages.opener = opener || $('mapData');
+    mapDataStatus('');
+    renderMapData();
+    renderStorageLine();
+    if (!mapDataDialog.open) mapDataDialog.showModal();
+  }
+  mapDataDialog.addEventListener('close', () => {
+    const opener = mapPackages.opener && mapPackages.opener.isConnected ? mapPackages.opener : $('mapData');
+    opener.focus();
+  });
+  $('mapData').addEventListener('click', () => openMapData($('mapData')));
+  $('mapDataClose').addEventListener('click', () => mapDataDialog.close());
+  $('mapDataKeep').addEventListener('change', () => {mapPackages.keepTouched = true;});
+  $('mapDataPick').addEventListener('click', () => $('mapDataFile').click());
+  $('mapDataFile').addEventListener('change', () => {
+    const file = $('mapDataFile').files && $('mapDataFile').files[0];
+    $('mapDataFile').value = '';
+    if (file) addMapPackage(file);
+  });
+
+  // Packages saved on an earlier visit come back after the page is up; nothing waits for them.
+  (async () => {
+    let idb = null;
+    try {idb = window.indexedDB || null;} catch (error) {idb = null;}
+    mapPackages.store = await PackStore.create({indexedDB: idb, storage: navigator.storage});
+    await refreshPackages();
+    for (const rec of mapPackages.list) {
+      try {
+        const reader = await PMTiles.open(PMTiles.blobSource(rec.blob));
+        regionManager.addPackage({id: rec.id, name: rec.name, reader, info: rec.info});
+      } catch (error) {mapPackages.faults.set(rec.id, error && error.message ? error.message : String(error));}
+    }
+    mapPackages.restored = true;
+    renderMapData();
+    if (!state.report && mapPackages.list.length) setCoverage(idleCoverageNote());
+  })().catch(error => {mapPackages.restored = true; console.error(error);});
 
   /* ---------------------------------------------------------------------- start -- */
 
@@ -1058,6 +1529,7 @@
   $('volume').value = String(settings.volume);
   applyMotion();
   syncSoundChip();
+  syncViewControls('globe');
   syncControls();
   document.body.dataset.presentation = 'idle';
 })();

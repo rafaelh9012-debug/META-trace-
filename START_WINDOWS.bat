@@ -11,8 +11,8 @@ if not errorlevel 1 (
   python RUN_CONSOLE.py
   exit /b
 )
-powershell -NoProfile -Command "$p = Join-Path (Get-Location).Path 'Qwen_Map_Console.html'; $u = ([System.Uri]$p).AbsoluteUri; Start-Process $u"
+powershell -NoProfile -Command "$p = Join-Path (Get-Location).Path 'META_trace_Console.html'; $u = ([System.Uri]$p).AbsoluteUri; Start-Process $u"
 if errorlevel 1 (
-  start "" "%~dp0Qwen_Map_Console.html"
+  start "" "%~dp0META_trace_Console.html"
 )
 endlocal

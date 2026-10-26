@@ -1,0 +1,36 @@
+{
+  "package": "protomaps-basemap-firenze.pmtiles, Protomaps basemap 3.7.1, 6,601,156 bytes",
+  "finalView": {
+    "lineworkPixels": 32061,
+    "names": [
+      "place: Firenze",
+      "place: Sesto Fiorentino",
+      "place: Fiesole",
+      "place: Tavarnuzze",
+      "place: Cascine del Riccio",
+      "place: Grassina",
+      "place: Serpiolle",
+      "place: Caldine",
+      "place: Trespiano",
+      "place: Montorsoli",
+      "place: Galluzzo",
+      "place: Pozzolatico",
+      "place: Ponte a Ema",
+      "place: Quinto Basso",
+      "place: Isolotto",
+      "place: Peretola",
+      "place: Colonnata",
+      "place: Poggio Gherardo",
+      "place: Maiano",
+      "place: Case Nuove",
+      "place: Lappeggi",
+      "place: Borgaccio",
+      "place: La Torre",
+      "place: Casa Nuova",
+      "place: Callai",
+      "waterway: Torrente Mugnone",
+      "waterway: Torrente Mugnone",
+      "waterway: Fiume Arno"
+    ]
+  }
+}

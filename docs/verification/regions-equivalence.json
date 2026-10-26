@@ -1,0 +1,46 @@
+{
+  "environment": "headless Chromium, software rasterisation, 1440x900",
+  "package": {
+    "bytes": 597138,
+    "converter": "80 tiles"
+  },
+  "note": "the same view drawn by the bundled renderer and then by the converted package, geometry only (label selection is switched off in this page)",
+  "rows": {
+    "final view (map zoom 12.88)": {
+      "pixels": 497960,
+      "drawn": 9996,
+      "differ": 168,
+      "differFraction": 0.00033737649610410475,
+      "differOfDrawn": 0.01680672268907563,
+      "meanAbsDifference": 0.04757016627841561,
+      "litBundled": 2471,
+      "litPackage": 2415,
+      "regionTiles": 2,
+      "regionMs": 0.2
+    },
+    "zoom 15.5": {
+      "pixels": 497960,
+      "drawn": 216897,
+      "differ": 734,
+      "differFraction": 0.0014740139770262671,
+      "differOfDrawn": 0.00338409475465313,
+      "meanAbsDifference": 1.3158808659337033,
+      "litBundled": 33409,
+      "litPackage": 33348,
+      "regionTiles": 12,
+      "regionMs": 0.4
+    },
+    "zoom 17.2": {
+      "pixels": 497960,
+      "drawn": 221958,
+      "differ": 1482,
+      "differFraction": 0.00297614266206121,
+      "differOfDrawn": 0.00667693888032871,
+      "meanAbsDifference": 0.9216464085472428,
+      "litBundled": 59433,
+      "litPackage": 53857,
+      "regionTiles": 6,
+      "regionMs": 0.5
+    }
+  }
+}

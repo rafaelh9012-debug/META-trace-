@@ -20,15 +20,27 @@
   const unwrapLongitude=(lng,centerLng)=>lng+360*Math.round((centerLng-lng)/360);
 
   /** What the map can honestly show for a coordinate. Pure, so it can be tested without a map. */
-  function classify(location,bounds){
+  /**
+   * `bounds` is one [west, south, east, north] box or a list of them (bundled data and installed regional packages).
+   * `zoomFor(location)` supplies the final zoom (the five-mile frame, fitted from the viewport); without it the fixed
+   * street and overview zooms of earlier versions are used.
+   */
+  function inBounds(location,bounds){
+    if(!Array.isArray(bounds)||!bounds.length)return false;
+    const boxes=Array.isArray(bounds[0])?bounds:[bounds];
+    return boxes.some(b=>Array.isArray(b)&&location.longitude>=b[0]&&location.longitude<=b[2]&&location.latitude>=b[1]&&location.latitude<=b[3]);
+  }
+  function classify(location,bounds,zoomFor){
     if(!location||!Number.isFinite(location.latitude)||!Number.isFinite(location.longitude))return {kind:'none'};
     if(Math.abs(location.latitude)>MAX_MERCATOR_LAT)return {kind:'polar'};
     // Without bundled street geometry nothing is regional: the exact point stays on the world overview.
-    const regional=Array.isArray(bounds)&&location.longitude>=bounds[0]&&location.longitude<=bounds[2]&&location.latitude>=bounds[1]&&location.latitude<=bounds[3];
-    return regional?{kind:'regional',zoom:STREET_ZOOM}:{kind:'overview',zoom:OVERVIEW_ZOOM};
+    const regional=inBounds(location,bounds);
+    const zoom=typeof zoomFor==='function'?zoomFor(location):regional?STREET_ZOOM:OVERVIEW_ZOOM;
+    return regional?{kind:'regional',zoom}:{kind:'overview',zoom};
   }
 
-  function create({L,map,bounds,onInterrupt}){
+  function create({L,map,bounds,onInterrupt,zoomFor}){
+    const getBounds=typeof bounds==='function'?bounds:()=>bounds;
     let flight=null,sequence=0;
     const container=map.getContainer();
 
@@ -78,7 +90,7 @@
     }
 
     function fly(location,{animate=true,duration=2.9}={}){
-      const plan=classify(location,bounds);
+      const plan=classify(location,getBounds(),zoomFor);
       if(plan.kind==='none'||plan.kind==='polar')return Promise.resolve('skipped');
       const c=map.getCenter(),lng=unwrapLongitude(location.longitude,c.lng);
       return move({lat:location.latitude,lng},plan.zoom,{animate,duration,trueLongitude:location.longitude});
@@ -86,7 +98,7 @@
 
     /** Immediate placement at the final view (skip, reduced motion, renderer fallback). */
     function jump(location){
-      const plan=classify(location,bounds);
+      const plan=classify(location,getBounds(),zoomFor);
       if(flight)cancel('replaced');
       if(plan.kind==='none'||plan.kind==='polar')return plan;
       map.setView([location.latitude,location.longitude],plan.zoom,{animate:false,reset:true});
@@ -107,7 +119,7 @@
     }
 
     function recenter(location,{animate=true}={}){
-      const plan=classify(location,bounds);if(plan.kind==='none'||plan.kind==='polar')return Promise.resolve('skipped');
+      const plan=classify(location,getBounds(),zoomFor);if(plan.kind==='none'||plan.kind==='polar')return Promise.resolve('skipped');
       const c=map.getCenter(),lng=unwrapLongitude(location.longitude,c.lng);
       return move({lat:location.latitude,lng},plan.zoom,{animate,duration:.9,trueLongitude:location.longitude});
     }
@@ -118,7 +130,7 @@
     container.addEventListener('keydown',e=>{if(/^(Arrow|\+|-|=|PageUp|PageDown|Home|End)/.test(e.key))interrupt();},true);
 
     return {
-      fly,jump,widen,rest,recenter,cancel,classify:loc=>classify(loc,bounds),
+      fly,jump,widen,rest,recenter,cancel,classify:loc=>classify(loc,getBounds(),zoomFor),
       get flying(){return !!flight;},
       get flightId(){return flight?flight.id:0;},
       dispose(){cancel('cancelled');}

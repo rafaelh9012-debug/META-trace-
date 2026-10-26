@@ -28,19 +28,27 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
 const sequence = async page => (await page.evaluate(() => window.__sequence.map(x => x.state))).filter(s => s !== 'idle');
 const title = page => B.text(page, 'statusTitle');
 const enabled = async (page, id) => !(await page.locator('#' + id).isDisabled());
-async function wideOnly(page) {const s = await B.snapshot(page); assert.ok(s.camera.zoom <= 3.5, 'camera stayed on the world view (zoom ' + s.camera.zoom + ')'); return s;}
+async function wideOnly(page) {
+  const s = await B.snapshot(page);
+  assert.ok(s.camera.zoom <= 3.5, 'camera stayed on the world view (zoom ' + s.camera.zoom + ')');
+  assert.equal(s.view, 'globe', 'nothing was plotted, so the globe stays the view');
+  assert.ok(s.globe.alt > 5e6, 'and it did not descend (altitude ' + Math.round(s.globe.alt) + ' m)');
+  return s;
+}
+const expectFrame = B.expectFrame;
 
 /* ----------------------------------------------------------------------------------------- */
 
 scenario('starts idle: nothing selected, controls disabled, no simulation or playback wording', async ({page}) => {
   assert.equal(await title(page), 'Waiting for an image');
-  for (const id of ['analyze', 'skip', 'replay', 'clear', 'changeImage', 'cleanView', 'copyCoordinates', 'exportReport', 'recenter']) assert.equal(await enabled(page, id), false, id + ' is disabled');
+  for (const id of ['analyze', 'skip', 'replay', 'clear', 'changeImage', 'cleanView', 'copyCoordinates', 'exportReport']) assert.equal(await enabled(page, id), false, id + ' is disabled');
+  assert.equal(await enabled(page, 'recenter'), true, 'Recenter works on the idle globe (it turns it back to the home view)');
   assert.equal(await page.title(), 'META trace');
   const visible = await page.locator('body').innerText();
   const attributes = await page.evaluate(() => [...document.querySelectorAll('[aria-label],[title],[placeholder],[alt]')].map(e => [e.getAttribute('aria-label'), e.title, e.getAttribute('placeholder'), e.getAttribute('alt')].filter(Boolean).join(' ')).join(' | '));
   assert.doesNotMatch(visible + ' ' + attributes, /simulat|playback|demo\b|mock|fake|placeholder data|sample data/i);
   const s = await B.snapshot(page);
-  assert.deepEqual([s.presentation, s.analysis, s.camera.zoom, s.pin, s.audio.voices], ['idle', 'idle', 2.2, null, 0]);
+  assert.deepEqual([s.presentation, s.analysis, s.camera.zoom, s.pin, s.audio.voices, s.view], ['idle', 'idle', 2.2, null, 0, 'globe']);
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
 });
 
@@ -64,7 +72,7 @@ scenario('success (fast motion): ordered presentation, exact values, street-scal
   const s = await B.snapshot(page);
   assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON), 'pin sits exactly on the recorded coordinate');
   assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON), 'camera ended on the pin');
-  assert.equal(s.camera.zoom, 18);
+  await expectFrame(page, LAT, LON, 'Gainesville: ', {renderer: 'map'});
   assert.equal(s.pin.popupOpen, true);
   assert.equal(s.mapNotice, null);
   assert.equal(s.stagePhase, 'settled');
@@ -105,8 +113,8 @@ scenario('cinematic: beat durations follow the plan and the flight keeps produci
   steps.forEach((s, i) => {if (steps[i + 1]) dur[s.state] = steps[i + 1].at - s.at;});
   const total = steps.at(-1).at - steps[0].at;
   const within = (name, plan, tol) => assert.ok(Math.abs(dur[name] - plan) <= tol, name + ' lasted ' + Math.round(dur[name]) + ' ms, plan ' + plan + ' +/- ' + tol);
-  within('acquire', 300, 150); within('scan', 900, 200); within('reveal', 1000, 200); within('resolve', 600, 150); within('fly', 2900, 500); within('lock', 500, 150);
-  assert.ok(Math.abs(total - 6200) < 700, 'whole sequence ' + Math.round(total) + ' ms, plan 6200');
+  within('acquire', 300, 150); within('scan', 900, 200); within('reveal', 1000, 200); within('resolve', 600, 250); within('fly', 8000, 600); within('lock', 700, 200);
+  assert.ok(Math.abs(total - 11500) < 1000, 'whole sequence ' + Math.round(total) + ' ms, plan 11500');
   const flightFrames = frames.filter(t => t >= steps.find(s => s.state === 'fly').at && t <= steps.find(s => s.state === 'lock').at);
   const dts = flightFrames.slice(1).map((t, i) => t - flightFrames[i]).sort((a, b) => a - b);
   const pct = p => dts[Math.min(dts.length - 1, Math.floor(dts.length * p))];
@@ -117,15 +125,15 @@ scenario('cinematic: beat durations follow the plan and the flight keeps produci
   assert.ok(layer.avgMs < 40, 'average base-map redraw ' + layer.avgMs.toFixed(1) + ' ms');
 });
 
-scenario('a missing GPS tag is reported plainly: no pin, no coordinates, the map stays on the world view', {motion: 'fast'}, async ({page}) => {
+scenario('a missing GPS tag is reported plainly: no pin, no coordinates, the globe stays the view', {motion: 'fast'}, async ({page}) => {
   await B.analyze(page, 'no-gps.jpg');
   assert.equal(await title(page), 'No location metadata found');
   assert.equal(await page.locator('#coordinates').isHidden(), true);
   assert.equal(await enabled(page, 'copyCoordinates'), false);
   assert.equal(await enabled(page, 'exportReport'), true);
-  assert.equal(await enabled(page, 'recenter'), false);
+  assert.equal(await enabled(page, 'recenter'), true, 'Recenter still turns the globe home');
   assert.equal(await page.locator('#mapNotice').isVisible(), true);
-  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE MAP');
+  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE GLOBE');
   assert.deepEqual(await sequence(page), ['acquire', 'scan', 'reveal', 'settled'], 'no resolve, fly or lock without a location');
   const s = await wideOnly(page);
   assert.equal(s.pin, null);
@@ -162,7 +170,8 @@ scenario('XMP-only coordinates are read, and the exact pair is plotted', {motion
   assert.equal(await title(page), 'GPS coordinates found');
   const s = await B.snapshot(page);
   assert.ok(near(s.pin.lat, 48 + 51.492 / 60) && near(s.pin.lng, 2 + 17.670 / 60));
-  assert.equal(s.camera.zoom, 5, 'Paris is outside the bundled streets: world overview');
+  await expectFrame(page, 48 + 51.492 / 60, 2 + 17.670 / 60, 'Paris: ');   // outside the bundled streets: the same five-mile frame, with outlines only
+  assert.equal(s.coverage, 'OFFLINE / OUTLINES');
 });
 
 scenario('read failures and unsupported files keep their own messages', {motion: 'reduced'}, async ({page}) => {
@@ -200,116 +209,83 @@ scenario('zero/zero is a real coordinate and is plotted like any other', {motion
   assert.equal(await B.content(page, 'longitude'), '0.00000000');
   const s = await B.snapshot(page);
   assert.deepEqual([s.pin.lat, s.pin.lng], [0, 0]);
-  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE / OVERVIEW');
+  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE / OUTLINES');
+  await expectFrame(page, 0, 0, '0,0: ', {renderer: 'map'});
 });
 
-scenario('outside the bundled region the exact point stays on the world overview, with an explanation', {motion: 'fast'}, async ({page}) => {
+scenario('outside the bundled streets the exact point is still framed at five miles, and the page says what is and is not drawn', {motion: 'fast'}, async ({page}) => {
   await B.analyze(page, 'gps-outside-region.jpg');
-  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE / OVERVIEW');
-  assert.match(await B.content(page, 'coverageNote'), /not bundled/);
+  assert.equal(await B.content(page, 'coverageBadge'), 'OFFLINE / OUTLINES');
+  assert.match(await B.content(page, 'coverageNote'), /No offline roads or buildings are installed for this area/);
+  assert.match(await B.content(page, 'coverageNote'), /Nothing is drawn that is not in the data/);
+  assert.match(await B.content(page, 'coverageNote'), /Add map data/);      // the way to get streets for this place (a map package), offered as a button
+  assert.ok(await page.isVisible('#coverageAdd'), 'the Add map data action is shown');
   const s = await B.snapshot(page);
-  assert.equal(s.camera.zoom, 5, 'never flies into a blank maximum zoom');
+  await expectFrame(page, 48 + 51 / 60 + 29.52 / 3600, 2 + 17 / 60 + 40.2 / 3600, 'outside: ', {renderer: 'map'});
   assert.ok(near(s.pin.lat, 48 + 51 / 60 + 29.52 / 3600) && near(s.pin.lng, 2 + 17 / 60 + 40.2 / 3600));
   assert.ok(near(s.camera.lat, s.pin.lat) && near(s.camera.lng, s.pin.lng));
 });
 
-scenario('the handoff coordinate finishes on the world overview, with elevation, error radius and numbers intact', {motion: 'fast'}, async ({page}) => {
+scenario('the handoff coordinate finishes in the five-mile frame, with elevation, error radius and numbers intact', {motion: 'fast'}, async ({page}) => {
   await B.analyze(page, 'handoff-overview.jpg');
   assert.equal(await B.content(page, 'latitude'), '34.20452700');
   assert.equal(await B.content(page, 'longitude'), '89.28323700');
   assert.equal(await B.content(page, 'altitude'), '47.46 m');
   assert.equal(await B.content(page, 'accuracy'), '12.5 m');
   const s = await B.snapshot(page);
-  assert.equal(s.camera.zoom, 5);
-  assert.equal(s.coverage, 'OFFLINE / OVERVIEW');
+  await expectFrame(page, 34.204527, 89.283237, 'handoff: ', {renderer: 'map'});
+  assert.equal(s.coverage, 'OFFLINE / OUTLINES');
   assert.ok(near(s.accuracy.lat, 34.204527, 1e-7) && near(s.accuracy.lng, 89.283237, 1e-7) && s.accuracy.radius === 12.5);
-  assert.match(await B.content(page, 'mapSubtitle'), /world overview/);
+  assert.match(await B.content(page, 'mapSubtitle'), /Five-mile view/);
 });
 
-scenario('projection limit: 85 degrees is plotted, 89.5 north and south stay numeric with a notice', {motion: 'reduced'}, async ({page}) => {
+scenario('projection limit: 85 degrees and both poles are plotted on the globe, which the flat map cannot show', {motion: 'reduced'}, async ({page}) => {
   await B.analyze(page, 'gps-lat-85.jpg');
   let s = await B.snapshot(page);
   assert.deepEqual([s.pin.lat, s.pin.lng], [85, 10]);
-  for (const [file, lat, lon] of [['gps-near-pole.jpg', '89.50000000', '45.00000000'], ['gps-south-pole.jpg', '-89.50000000', '-45.00000000']]) {
+  await expectFrame(page, 85, 10, '85 N: ', {renderer: 'globe'});
+  for (const [file, lat, lon, latNum, lonNum] of [['gps-near-pole.jpg', '89.50000000', '45.00000000', 89.5, 45], ['gps-south-pole.jpg', '-89.50000000', '-45.00000000', -89.5, -45]]) {
     await B.analyze(page, file);
     assert.equal(await title(page), 'GPS coordinates found');
     assert.equal(await B.content(page, 'latitude'), lat);
     assert.equal(await B.content(page, 'longitude'), lon);
     s = await B.snapshot(page);
-    assert.equal(s.pin, null);
-    assert.equal(s.mapNotice, 'GPS found near a pole');
-    assert.equal(s.coverage, 'GPS / POLAR');
+    assert.equal(s.view, 'globe');
+    assert.equal(s.pin, null, 'no flat-map pin beyond the Web Mercator limit');
+    assert.deepEqual([s.sequence.final.lat, s.sequence.final.lon, s.sequence.final.renderer], [latNum, lonNum, 'globe']);
+    assert.equal(s.mapNotice, null, 'the old "GPS found near a pole" notice is gone: the globe can show it');
+    assert.equal(s.coverage, 'OFFLINE / OUTLINES');
+    await expectFrame(page, latNum, lonNum, file + ': ', {renderer: 'globe'});
     assert.equal(await enabled(page, 'copyCoordinates'), true);
     assert.equal(await enabled(page, 'exportReport'), true);
-    assert.equal(await enabled(page, 'recenter'), false);
-    assert.ok(s.camera.zoom < 6, 'the camera did not fly to an unrepresentable place');
+    assert.equal(await enabled(page, 'recenter'), true);
   }
 });
 
-// Drags the map until its centre longitude is near `target` (circular). Real mouse input, as a person would do it.
-async function panNear(page, target) {
-  const box = await page.locator('#map').boundingBox();
-  for (let i = 0; i < 8; i++) {
-    const c = (await B.snapshot(page)).camera;
-    const delta = ((target - c.lng + 540) % 360) - 180;          // degrees to travel, east positive
-    if (Math.abs(delta) < 4) return c;
-    const perDegree = 256 * Math.pow(2, c.zoom) / 360, reach = box.width - 80;       // stay inside the map and the window
-    const dx = Math.max(-reach, Math.min(reach, -delta * perDegree));
-    const x0 = dx > 0 ? box.x + 40 : box.x + box.width - 40;
-    // A start point that is bare map: not under a control, the notice or the coverage panel.
-    const y = await page.evaluate(([x, top, height]) => {
-      for (const f of [0.5, 0.65, 0.35, 0.8, 0.2]) {
-        const e = document.elementFromPoint(x, top + height * f);
-        if (e && (e.id === 'map' || e.closest('.leaflet-pane')) && !e.closest('.leaflet-control, button, a, input, select')) return top + height * f;
-      }
-      return null;
-    }, [x0, box.y, box.height]);
-    assert.notEqual(y, null, 'found bare map to drag from');
-    await page.mouse.move(x0, y); await page.mouse.down(); await page.mouse.move(x0 + dx, y, {steps: 10});
-    await B.sleep(150);                                           // hold still before release: no inertia throw
-    await page.mouse.up();
-    await B.sleep(150);
-  }
-  return (await B.snapshot(page)).camera;
-}
 const circular = (a, b) => ((b - a + 540) % 360) - 180;
 /** Turns wrapped longitude samples into one continuous track, so a crossing shows as a small step, not a 360 jump. */
 function unwrapTrack(samples) {const track = [samples[0]]; for (let i = 1; i < samples.length; i++) track.push(track[i - 1] + circular(samples[i - 1], samples[i])); return track;}
 
-scenario('antimeridian: flights take the short way across, and the pin and camera end on the true longitude', {motion: 'fast'}, async ({page}) => {
-  await page.evaluate(() => {window.__lng = []; setInterval(() => window.__lng.push(window.MetaTrace.snapshot().camera.lng), 25);});
-  const east = 179 + 59 / 60 + 59.64 / 3600, west = -east;       // +/-179.9999 degrees
-
-  // From a camera about 30 degrees west of the antimeridian, to a point just east of it: the path goes west.
-  const startA = await panNear(page, -150);
-  assert.ok(Math.abs(circular(-150, startA.lng)) < 6, 'camera positioned near -150 (' + startA.lng.toFixed(1) + ')');
-  await page.evaluate(() => {window.__lng = [];});
-  await B.analyze(page, 'gps-antimeridian-east.jpg');
-  let s = await B.snapshot(page);
-  assert.ok(near(s.pin.lng, east) && near(s.camera.lng, east), 'east: pin and camera end on +179.9999');
-  assert.ok(near(s.pin.lat, -17.75) && near(s.camera.lat, -17.75));
-  let track = unwrapTrack(await page.evaluate(() => window.__lng));
-  assert.ok(track.length > 20, 'enough samples (' + track.length + ')');
-  const travelled = Math.max(...track) - Math.min(...track);
-  assert.ok(travelled < 40, 'the camera moved ' + travelled.toFixed(1) + ' degrees of longitude (the short way is about 30, round the world would be 330)');
-  assert.ok(Math.max(...track) < startA.lng + 6 && Math.min(...track) > -181, 'east case stayed between the start and the antimeridian: ' + Math.min(...track).toFixed(2) + '..' + Math.max(...track).toFixed(2));
-  assert.ok(Math.min(...track) < -179 || Math.max(...track) > 179, 'the track reached the antimeridian');
-  assert.ok(Math.max(...track.slice(1).map((v, i) => Math.abs(v - track[i]))) < 20, 'no jump between consecutive samples');
-
-  // And back: from east of the antimeridian to a point just west of it.
-  await page.click('#clear');
-  const startB = await panNear(page, 150);
-  assert.ok(Math.abs(circular(150, startB.lng)) < 6, 'camera positioned near +150 (' + startB.lng.toFixed(1) + ')');
-  await page.evaluate(() => {window.__lng = [];});
-  await B.analyze(page, 'gps-antimeridian-west.jpg');
-  s = await B.snapshot(page);
-  assert.ok(near(s.pin.lng, west) && near(s.camera.lng, west), 'west: pin and camera end on -179.9999');
-  assert.ok(Math.abs(s.camera.lng) <= 180 && Math.abs(s.pin.lng) <= 180, 'longitudes are normalised to +/-180');
-  track = unwrapTrack(await page.evaluate(() => window.__lng));
-  assert.ok(Math.min(...track) > startB.lng - 6 && Math.max(...track) < 181, 'west case stayed between the start and the antimeridian: ' + Math.min(...track).toFixed(2) + '..' + Math.max(...track).toFixed(2));
-  assert.ok(Math.max(...track) - Math.min(...track) < 40, 'west: short way, ' + (Math.max(...track) - Math.min(...track)).toFixed(1) + ' degrees');
-  assert.equal(s.camera.zoom, 5);
-  assert.equal(await B.content(page, 'longitude'), '-179.99990000');
+scenario('antimeridian: the sweep is continuous, ends on the true longitude, and a frame straddling +/-180 still measures five miles', {motion: 'fast'}, async ({page}) => {
+  await page.evaluate(() => {window.__lng = []; const tick = () => {const s = window.MetaTrace.snapshot(); window.__lng.push(s.view === 'globe' ? s.globe.lon : s.camera.lng); requestAnimationFrame(tick);}; requestAnimationFrame(tick);});
+  const east = 179 + 59 / 60 + 59.64 / 3600;       // +/-179.9999 degrees
+  for (const [file, lon, text] of [['gps-antimeridian-east.jpg', east, '179.99990000'], ['gps-antimeridian-west.jpg', -east, '-179.99990000']]) {
+    await page.evaluate(() => {window.__lng = [];});
+    await B.analyze(page, file);
+    const s = await B.snapshot(page);
+    assert.ok(near(s.pin.lng, lon) && near(s.camera.lng, lon), file + ': pin and camera end on the true longitude ' + lon);
+    assert.ok(Math.abs(s.camera.lng) <= 180 && Math.abs(s.pin.lng) <= 180, 'longitudes are normalised to +/-180');
+    assert.equal(await B.content(page, 'longitude'), text);
+    await expectFrame(page, s.pin.lat, lon, file + ': ', {renderer: 'map'});
+    const plan = s.sequence.plan;
+    assert.ok(plan.sweep >= 360, file + ': the planned sweep is at least one full revolution (' + plan.sweep.toFixed(1) + ')');
+    assert.ok(Math.abs(circular(plan.lonEnd, lon)) < 1e-6, 'and it ends on the target longitude');
+    const track = unwrapTrack(await page.evaluate(() => window.__lng));
+    assert.ok(track.length > 20, 'enough samples (' + track.length + ')');
+    assert.ok(Math.max(...track.slice(1).map((v, i) => Math.abs(v - track[i]))) < 35, file + ': no jump between consecutive frames (largest ' + Math.max(...track.slice(1).map((v, i) => Math.abs(v - track[i]))).toFixed(1) + ' degrees)');
+    assert.ok(Math.abs(circular(track.at(-1), lon)) < 1e-3, 'the track ends on the target');
+    await page.click('#clear');
+  }
 });
 
 scenario('Recenter returns to the exact point after the person pans away, and map input hands control back', {motion: 'fast'}, async ({page}) => {
@@ -325,7 +301,8 @@ scenario('Recenter returns to the exact point after the person pans away, and ma
   await page.click('#recenter');
   await page.waitForFunction(() => {const s = window.MetaTrace.snapshot(); return !s.flying && Math.abs(s.camera.lng - (-82.33788888888889)) < 1e-7;}, null, {timeout: 5000});
   s = await B.snapshot(page);
-  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON) && s.camera.zoom === 18);
+  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON));
+  await expectFrame(page, LAT, LON, 'after Recenter: ', {renderer: 'map'});
   // Interrupting a recenter flight with the mouse stops it where it is.
   await page.mouse.move(box.x + 300, box.y + 300); await page.mouse.down(); await page.mouse.move(box.x + 100, box.y + 200, {steps: 5}); await page.mouse.up();
   await page.click('#recenter');
@@ -423,7 +400,8 @@ scenario('replay shows the same result again without reading or parsing the file
   assert.deepEqual(after, before, 'no extra file read, no extra worker, no extra log lines');
   assert.deepEqual((await sequence(page)), ['acquire', 'scan', 'reveal', 'resolve', 'fly', 'lock', 'settled']);
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON) && s.camera.zoom === 18);
+  assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON));
+  await expectFrame(page, LAT, LON, 'replay: ', {renderer: 'map'});
   assert.equal(await title(page), 'GPS coordinates found');
   assert.equal(await B.content(page, 'latitude'), '29.64885278');
   assert.equal(await enabled(page, 'exportReport'), true);
@@ -463,7 +441,12 @@ scenario('keyboard only: choose, analyze, skip with Escape, and focus never gets
   const order = [];
   for (let i = 0; i < 12; i++) {await page.keyboard.press('Tab'); const id = await page.evaluate(() => document.activeElement.id); order.push(id); if (id === 'chooseButton') break;}
   assert.deepEqual(order, ['soundToggle', 'volume', 'motion', 'fullscreen', 'chooseButton']);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')]);
+  // Playwright only starts intercepting the dialog once a listener is registered. Registering and pressing Enter in the same
+  // tick races that, so the listener is placed first and given one round trip to take effect (the app behaves the same either way).
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.evaluate(() => 0);
+  await page.keyboard.press('Enter');
+  const chooser = await chooserPromise;
   await chooser.setFiles(B.fixture('sample-street.jpg'));
   await page.waitForFunction(() => document.getElementById('statusTitle').textContent === 'Image ready');
   assert.equal(await page.evaluate(() => document.activeElement.id), 'analyze');
@@ -478,7 +461,8 @@ scenario('keyboard only: choose, analyze, skip with Escape, and focus never gets
   const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle + ' ' + getComputedStyle(document.activeElement).outlineWidth);
   assert.match(outline, /^solid 2px/, 'visible keyboard focus ring');
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && s.camera.zoom === 18);
+  assert.ok(near(s.pin.lat, LAT));
+  await expectFrame(page, LAT, LON, 'after Escape: ', {renderer: 'map'});
   // Decorative layers are hidden from assistive technology; the readout and live regions are not.
   assert.equal(await page.locator('#scanCanvas').getAttribute('aria-hidden'), 'true');
   assert.equal(await page.locator('#ticker').getAttribute('aria-hidden'), 'true');
@@ -516,31 +500,35 @@ scenario('the file name, the outcome and the controls are visible in every prese
 });
 
 for (const [motion, via] of [['fast', 'run'], ['full', 'skip'], ['full', 'run']]) {
-  scenario('after a street-scale result, a file with nothing to plot leaves the camera at rest on the wide view (' + motion + ' motion, ' + via + ')', {motion}, async ({page}) => {
+  scenario('after a street-scale result, a file with nothing to plot returns the globe to rest on the wide view (' + motion + ' motion, ' + via + ')', {motion}, async ({page}) => {
     await B.analyze(page, 'sample-street.jpg', {wait: false});
     if (motion === 'full') await page.click('#skip');
     await B.waitDone(page, 30000);
-    assert.equal((await B.snapshot(page)).camera.zoom, 18);
-    for (const file of ['no-gps.jpg', 'conflicting-gps.jpg', 'gps-near-pole.jpg']) {
+    await expectFrame(page, LAT, LON, 'street-scale result: ', {renderer: 'map'});
+    for (const file of ['no-gps.jpg', 'conflicting-gps.jpg']) {
       await B.choose(page, file);
       await page.click('#analyze');
       if (via === 'skip') {await page.waitForFunction(() => window.MetaTrace.snapshot().presentation === 'scan'); await B.sleep(200); await page.click('#skip');}
       await B.waitDone(page, 30000);
       const s = await B.snapshot(page);
       assert.equal(s.flying, false, file + ': no move in progress');
-      assert.equal(s.camera.zoom, 3, file + ': at rest on the wide view, not mid-zoom and not on the old street (' + s.camera.zoom + ')');
+      assert.equal(s.view, 'globe', file + ': the globe is the view again, not the old street');
+      assert.equal(s.sequence.running, false, file + ': no camera sequence is running');
+      assert.ok(s.globe.alt > 5e6, file + ': at rest on the wide view, not mid-descent (altitude ' + Math.round(s.globe.alt) + ' m)');
       assert.equal(s.pin, null);
       await B.sleep(250);
-      assert.deepEqual((await B.snapshot(page)).camera, s.camera, file + ': and it stays there');
+      const later = await B.snapshot(page);
+      assert.equal(later.globe.alt, s.globe.alt, file + ': and it stays at that height');
+      assert.ok(Math.abs(later.globe.lat - s.globe.lat) < 1e-6 && Math.abs(circular(s.globe.lon, later.globe.lon)) < 3, file + ': drifting no more than the slow idle turn');
     }
     await B.choose(page, 'corrupt.tiff');
     await page.click('#analyze');
     await B.waitDone(page);
-    assert.equal((await B.snapshot(page)).camera.zoom, 3, 'a read failure also leaves the wide view');
+    assert.deepEqual(await B.snapshot(page).then(s => [s.view, s.globe.alt > 5e6]), ['globe', true], 'a read failure also leaves the wide view');
     // Replaying a no-location result keeps it there too.
     await B.analyze(page, 'no-gps.jpg');
     await page.click('#replay'); await B.waitDone(page, 30000);
-    assert.equal((await B.snapshot(page)).camera.zoom, 3);
+    assert.deepEqual(await B.snapshot(page).then(s => [s.view, s.globe.alt > 5e6]), ['globe', true]);
   });
 }
 
@@ -604,7 +592,7 @@ scenario('the map heading says what is happening at each step', {motion: 'full'}
   await page.waitForFunction(() => window.MetaTrace.snapshot().presentation === 'resolve');
   assert.equal(await B.text(page, 'mapSubtitle'), 'Locating the embedded GPS position.');
   await B.waitDone(page, 30000);
-  assert.match(await B.text(page, 'mapSubtitle'), /Detailed offline street geometry/);
+  assert.match(await B.text(page, 'mapSubtitle'), /Five-mile view with Gainesville street data/);
   await page.click('#replay');
   await page.waitForFunction(() => window.MetaTrace.snapshot().presentation === 'acquire' || window.MetaTrace.snapshot().presentation === 'scan');
   assert.equal(await B.text(page, 'mapSubtitle'), 'Showing the saved result again.');

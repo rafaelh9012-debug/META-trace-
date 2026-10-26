@@ -1,0 +1,31 @@
+{
+  "environment": "headless Chromium, software rasterisation, 1440x900",
+  "plan": {
+    "sweep": 406.19131608888887,
+    "revolutions": 1,
+    "duration": 8,
+    "lonStart": -36.14657280000004,
+    "lonEnd": -442.3378888888889,
+    "altEnd": 16390.450210392468
+  },
+  "sweepDegrees": 406.2,
+  "frames": {
+    "frames": 451,
+    "median": 16.7,
+    "p95": 33.3,
+    "worst": 33.4
+  },
+  "globeFrames": {
+    "frames": 311,
+    "median": 16.7,
+    "p95": 33.3,
+    "worst": 33.4
+  },
+  "mapFrames": {
+    "frames": 140,
+    "median": 16.7,
+    "p95": 16.8,
+    "worst": 16.8
+  },
+  "handoffAltitudeM": 950399
+}

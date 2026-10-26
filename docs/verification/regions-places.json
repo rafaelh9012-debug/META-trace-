@@ -1,0 +1,35 @@
+{
+  "note": "synthetic packages laid over each fixture place; frame measured from outside the app",
+  "rows": [
+    {
+      "file": "gps-sydney.jpg",
+      "tiles": 6,
+      "widthMiles": 5.0116,
+      "heightMiles": 4.9884
+    },
+    {
+      "file": "gps-quito.jpg",
+      "tiles": 4,
+      "widthMiles": 5.0168,
+      "heightMiles": 4.9832
+    },
+    {
+      "file": "gps-north-west.jpg",
+      "tiles": 6,
+      "widthMiles": 5.0127,
+      "heightMiles": 4.9873
+    },
+    {
+      "file": "gps-antimeridian-east.jpg",
+      "tiles": 6,
+      "widthMiles": 5.0152,
+      "heightMiles": 4.9848
+    },
+    {
+      "file": "gps-antimeridian-west.jpg",
+      "tiles": 6,
+      "widthMiles": 5.0152,
+      "heightMiles": 4.9848
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "environment": "headless Chromium, software rasterisation, 1280x800",
+  "package": {
+    "bytes": 2854848,
+    "tiles": 3553,
+    "features": 275984
+  },
+  "views": 520,
+  "loaded": 593,
+  "evicted": 409,
+  "tilesInCache": 199,
+  "cacheBytes": 2090360,
+  "bytesReadFromFile": 2506503,
+  "decodeMsTotal": 87,
+  "adaptMsTotal": 63,
+  "maxTileLoadMs": 55,
+  "regionDrawMs": {
+    "mean": 0.12,
+    "max": 1.3
+  },
+  "heapMB": {
+    "before": 66.1,
+    "after": 55
+  }
+}

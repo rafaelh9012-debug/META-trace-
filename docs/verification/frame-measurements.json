@@ -1,0 +1,160 @@
+{
+  "method": "independent: DOM rectangle of the frame plus the renderer camera, Vincenty on WGS84",
+  "viewport": "1440x900",
+  "table": [
+    {
+      "file": "gps-north-west.jpg",
+      "label": "Gainesville, Florida (N, W)",
+      "latitude": 29.648852777777776,
+      "longitude": -82.33788888888888,
+      "renderer": "map",
+      "widthMiles": 5.0127,
+      "heightMiles": 4.9873,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-sydney.jpg",
+      "label": "Sydney (S, E)",
+      "latitude": -33.8568,
+      "longitude": 151.21529999999998,
+      "renderer": "map",
+      "widthMiles": 5.0116,
+      "heightMiles": 4.9884,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-quito.jpg",
+      "label": "Quito, almost on the equator (S, W)",
+      "latitude": -0.18,
+      "longitude": -78.47,
+      "renderer": "map",
+      "widthMiles": 5.0168,
+      "heightMiles": 4.9832,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-zero-zero.jpg",
+      "label": "0, 0 (equator and prime meridian)",
+      "latitude": 0,
+      "longitude": 0,
+      "renderer": "map",
+      "widthMiles": 5.0168,
+      "heightMiles": 4.9832,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "handoff-overview.jpg",
+      "label": "Qinghai-Tibet plateau (N, E)",
+      "latitude": 34.204527,
+      "longitude": 89.283237,
+      "renderer": "map",
+      "widthMiles": 5.0115,
+      "heightMiles": 4.9885,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-outside-region.jpg",
+      "label": "Paris, outside the street data (N, E)",
+      "latitude": 48.858200000000004,
+      "longitude": 2.2944999999999998,
+      "renderer": "map",
+      "widthMiles": 5.0073,
+      "heightMiles": 4.9927,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-tromso.jpg",
+      "label": "Tromso, 69.6 N",
+      "latitude": 69.64916666666667,
+      "longitude": 18.955277777777777,
+      "renderer": "map",
+      "widthMiles": 5.002,
+      "heightMiles": 4.998,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-longyearbyen.jpg",
+      "label": "Longyearbyen, 78.2 N",
+      "latitude": 78.22333333333333,
+      "longitude": 15.626666666666667,
+      "renderer": "map",
+      "widthMiles": 5.0007,
+      "heightMiles": 4.9993,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-mcmurdo.jpg",
+      "label": "McMurdo, 77.8 S",
+      "latitude": -77.84166666666667,
+      "longitude": 166.66666666666666,
+      "renderer": "map",
+      "widthMiles": 5.0007,
+      "heightMiles": 4.9993,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-antimeridian-east.jpg",
+      "label": "just east of the antimeridian (S)",
+      "latitude": -17.75,
+      "longitude": 179.9999,
+      "renderer": "map",
+      "widthMiles": 5.0152,
+      "heightMiles": 4.9848,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-antimeridian-west.jpg",
+      "label": "just west of the antimeridian (S)",
+      "latitude": -17.75,
+      "longitude": -179.9999,
+      "renderer": "map",
+      "widthMiles": 5.0152,
+      "heightMiles": 4.9848,
+      "centreOffsetM": 0,
+      "framePx": 446
+    },
+    {
+      "file": "gps-lat-85.jpg",
+      "label": "85 N, the Web Mercator limit",
+      "latitude": 85,
+      "longitude": 10,
+      "renderer": "globe",
+      "widthMiles": 5.0005,
+      "heightMiles": 5.0003,
+      "centreOffsetM": 3.66,
+      "framePx": 446
+    },
+    {
+      "file": "gps-near-pole.jpg",
+      "label": "89.5 N",
+      "latitude": 89.5,
+      "longitude": 45,
+      "renderer": "globe",
+      "widthMiles": 5.0004,
+      "heightMiles": 5.0004,
+      "centreOffsetM": 3.66,
+      "framePx": 446
+    },
+    {
+      "file": "gps-south-pole.jpg",
+      "label": "89.5 S",
+      "latitude": -89.5,
+      "longitude": -45,
+      "renderer": "globe",
+      "widthMiles": 5.0004,
+      "heightMiles": 5.0004,
+      "centreOffsetM": 3.66,
+      "framePx": 446
+    }
+  ]
+}

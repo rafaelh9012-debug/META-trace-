@@ -1,77 +1,92 @@
-# META trace
+﻿# META-trace
 
-**2.1.0-rc.1** is a release candidate for the local image-metadata instrument,
-built on Crimson Image Metadata 2.0.0. It adds a dark red cinematic analysis
-presentation while keeping real EXIF/GPS extraction and offline operation.
+**Local Image Metadata Analysis & Geospatial Visualization**
 
-## Run on Windows
+META-trace is a privacy-focused image metadata analysis application featuring an interactive 3D globe, cinematic analysis sequences, and offline geographic visualization.
 
-Clone or download this repository and double-click `START_WINDOWS.bat`.
-You can also open `Qwen_Map_Console.html` directly, or run
-`python3 RUN_CONSOLE.py` to serve the app on loopback.
+## Features
 
-Choose or drop an image, then press **Analyze**. No package installation,
-model download, account, internet connection or map API key is needed to use
-the app. Images are processed locally and are not uploaded.
+- Local EXIF, GPS, XMP, and IPTC metadata extraction
+- Interactive dark-red 3D globe
+- Cinematic globe rotation and coordinate descent
+- Five-mile-by-five-mile geographic visualization
+- Offline world overview and regional street maps
+- Optional PMTiles geographic data packages
+- SHA-256 file hashing
+- Downloadable JSON metadata reports
+- Animated scanning and analysis interfaces
+- Reduced-motion and audio controls
+- No account, external API key, or internet connection required
 
-## What changed
+## Getting Started
 
-- Image acquisition, scan, metadata reveal and coordinate-settle sequence.
-- Smooth map descent to street scale within the bundled Gainesville region.
-- Pin lock, original synthesised sound cues, sound and volume controls.
-- Cinematic, Fast and Reduced motion modes; Skip, Replay and Clean view.
-- Cancellation of stale analysis, map movement and sound on a new file or Clear.
-- Expanded logic and real-browser tests, with verification screenshots and limits.
+### Windows
 
-The app maps validated embedded GPS only and reports **No location metadata
-found** when GPS is absent. Incomplete, invalid and conflicting coordinates
-remain separate outcomes. Copy and JSON export use the actual analysis report.
+1. Download or clone the complete repository.
+2. Run `START_WINDOWS.bat`.
+3. Select an image.
+4. Press **Analyze**.
 
-## Map and format coverage
+Alternatively, open `META_trace_Console.html` directly in your browser.
 
-Detailed streets cover part of Gainesville, Florida. Other valid GPS coordinates
-use a coarse offline world overview with a coverage notice. Photographic Street
-View and additional regional downloads are not included. GPS metadata can be
-edited and is not proof of where a photograph was taken.
+### macOS / Linux
 
-JPEG, PNG, TIFF and WebP GPS have synthetic test coverage. HEIC and AVIF remain
-best effort. Inputs are limited to 64 MiB and processed one at a time.
+Open `META_trace_Console.html` or run:
 
-## Development and verification
+`python3 RUN_CONSOLE.py`
 
-```bash
-python3 build_metadata.py
-node tests/run.cjs unit
-```
+## Offline Geographic Visualization
 
-For browser development tests, use Node 20 or newer:
+META-trace includes:
 
-```bash
-npm install
-npx playwright install chromium
-node tests/run.cjs
-```
+- A globally navigable 3D globe
+- Offline world geographic data
+- Detailed bundled Gainesville map coverage
+- Optional regional maps using PMTiles
+- A sample Florence, Italy geographic dataset
 
-The integration check ran **59 logic tests with no failures or skips**.
-Claude's [verification report](docs/VERIFICATION.md) separately records 174
-passing checks in headless Chromium and explains the limits of that run.
-Windows, other browsers and real-speaker listening still need user verification;
-the imported browser suite has not been rerun during this integration step.
+When valid GPS coordinates are embedded in an image, the globe performs an animated rotation and descends toward the recorded location.
 
-Read [README.txt](README.txt) for complete controls and usage,
-[HANDOFF.md](HANDOFF.md) for architecture and remaining work,
-[CHANGELOG.md](CHANGELOG.md) for release changes, and
-[SOURCES.txt](SOURCES.txt) for dependency and data attribution.
+The final view represents an approximately 5 x 5-mile area centered on the coordinates.
 
-## Version history
+Geographic detail depends on the locally available map data.
 
-| Ref | Version |
-| --- | --- |
-| `snapshot/terminal-map` | Archived staged terminal and map iteration |
-| `v2.0.0` | Real local metadata reader |
-| `v2.1.0-rc.1` | Cinematic release candidate, after tagging the imported commits |
+## Privacy
 
-The import preserves Claude's nine commits and adds a repository-integration
-commit for this README and the combined ignore rules. The changelog import was
-adjusted to update the file already present in the existing repository.
-Older versions remain recoverable through the existing commits and tags.
+Image analysis runs locally.
+
+- No image uploads
+- No external metadata-processing service
+- No account requirements
+- No external map API requests
+
+GPS metadata can be modified and does not independently prove where an image was taken.
+
+## Development
+
+The repository includes application source code, offline geographic data, build tools, and automated tests.
+
+Build the standalone application:
+
+`python build_metadata.py`
+
+Run unit tests:
+
+`node tests/run.cjs unit`
+
+Node.js 20 or newer is recommended for development.
+
+## Documentation
+
+- [Application Guide](README.txt)
+- [Map Architecture](docs/MAP_ARCHITECTURE.md)
+- [Map Data](docs/MAP_DATA.md)
+- [Verification Report](docs/VERIFICATION.md)
+- [Changelog](CHANGELOG.md)
+- [Third-Party Sources](SOURCES.txt)
+
+## Version Information
+
+Distribution: META-trace 2.2.1
+
+The packaged application's internal version identifier remains 2.2.0-rc.1 pending release metadata synchronization.

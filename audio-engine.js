@@ -142,6 +142,36 @@
         const sweep=osc('sine',180,t,end+0.05,voice,sweepGain);sweep.o.frequency.exponentialRampToValueAtTime(900,t+d*0.9);
         return voice;
       },
+      // The globe turning up to speed and settling. Level and pitch follow `curve` (0..1 samples spread evenly over
+      // `duration`), which the caller derives from the real rotation speed, so the sound rises and falls with the camera.
+      spin(params){
+        const c=begin('spin',params);if(!c)return null;const {t,voice,gain}=c;
+        const d=Math.max(0.4,params.duration||3),end=t+d;
+        const curve=Array.isArray(params.curve)&&params.curve.length>1?params.curve:Array.from({length:49},(_,i)=>Math.pow(Math.sin(Math.PI*i/48),1.5));
+        const bus=ctx.createGain();bus.connect(gain);
+        const wind=noiseSource(t,end+0.4,voice,bus,{filter:'bandpass',freq:230,q:1.4,loop:true});
+        const toneGain=ctx.createGain();toneGain.gain.value=0.5;toneGain.connect(bus);
+        const tone=osc('sine',64,t,end+0.4,voice,toneGain);
+        bus.gain.setValueAtTime(FLOOR,t);
+        curve.forEach((v,i)=>{
+          const at=t+d*i/(curve.length-1),k=clamp(Number(v)||0,0,1);
+          bus.gain.linearRampToValueAtTime(0.012+0.2*Math.pow(k,1.15),at);
+          wind.f.frequency.linearRampToValueAtTime(230+2100*k*k,at);
+          tone.o.frequency.linearRampToValueAtTime(64+200*k,at);
+        });
+        bus.gain.exponentialRampToValueAtTime(FLOOR,end+0.3);
+        return voice;
+      },
+      // A level of detail appearing during the descent: a short, soft, rising blip. `index` 0 to 4.
+      detail(params){
+        const c=begin('detail',params);if(!c)return null;const {t,voice,gain}=c;
+        const ladder=[784,987.77,1318.5,1760,2349.3],f=ladder[clamp(Math.round(Number(params.index)||0),0,ladder.length-1)];
+        const e=ctx.createGain();e.connect(gain);envelope(e.gain,t,{attack:0.003,peak:0.13,release:0.1});
+        osc('sine',f,t,t+0.16,voice,e);
+        const h=ctx.createGain();h.connect(gain);envelope(h.gain,t,{attack:0.003,peak:0.04,release:0.06});
+        osc('sine',f*2,t,t+0.1,voice,h);
+        return voice;
+      },
       // Target lock: a soft click and a clean two-partial tone.
       lock(params){
         const c=begin('lock',params);if(!c)return null;const {t,voice,gain}=c;

@@ -1,0 +1,11 @@
+{
+  "globeAltitudeM": 950398.8258415528,
+  "globeMetersPerPixel": 1046.1622362082667,
+  "mapZoom": 7.093363761659186,
+  "mapMetersPerPixel": 994.5574088992844,
+  "ratio": 0.9506722518526189,
+  "centreOffsetDeg": {
+    "lat": 0,
+    "lon": 0
+  }
+}

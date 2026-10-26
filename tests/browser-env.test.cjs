@@ -61,7 +61,8 @@ async function fullFlow(page, name = 'sample-street.jpg') {
   const s = await B.snapshot(page);
   assert.equal(await title(page), 'GPS coordinates found');
   assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON), 'exact pin');
-  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON) && s.camera.zoom === 18, 'street-scale finish');
+  assert.ok(near(s.camera.lat, LAT) && near(s.camera.lng, LON), 'camera on the coordinate');
+  await B.expectFrame(page, LAT, LON, 'finish: ', {renderer: 'map'});
   assert.equal(await B.content(page, 'latitude'), '29.64885278');
   assert.equal(await B.content(page, 'fileHash'), B.sha256(name));
   return s;
@@ -163,7 +164,7 @@ scenario('unusable storage does not break anything', {init: [() => {
 /* ============================================================ motion ======================================= */
 
 scenario('the operating system\'s reduced-motion setting is followed: no flight, no theatrics, quick result', {contextOptions: {reducedMotion: 'reduce'}}, async ({page}) => {
-  await page.evaluate(() => {window.__zoom = []; setInterval(() => window.__zoom.push(window.MetaTrace.snapshot().camera.zoom), 20);});
+  await page.evaluate(() => {window.__zoom = []; setInterval(() => {const s = window.MetaTrace.snapshot(); window.__zoom.push([s.camera.zoom, s.globe.alt, s.globe.lon]);}, 20);});
   assert.equal(await page.locator('html').getAttribute('data-motion'), 'reduced');
   assert.equal(await page.inputValue('#motion'), 'reduced');
   assert.equal((await B.snapshot(page)).motion, 'reduced');
@@ -173,10 +174,14 @@ scenario('the operating system\'s reduced-motion setting is followed: no flight,
   const {total, dur, steps} = await beats(page);
   assert.ok(total < 1800, 'the whole presentation took ' + Math.round(total) + ' ms');
   assert.ok((dur.fly || 0) < 60, 'no flight beat (' + Math.round(dur.fly || 0) + ' ms)');
-  const zooms = await page.evaluate(() => window.__zoom);
-  assert.equal(zooms.filter(z => z > 3 && z < 17.9).length, 0, 'the camera never travelled through intermediate zooms');
+  const samples = await page.evaluate(() => window.__zoom);
+  // The flat map starts at its hidden world zoom and jumps once to the final zoom; the globe never changes height or longitude.
+  assert.ok(new Set(samples.map(z => z[0].toFixed(3))).size <= 2, 'the flat map never travelled through intermediate zooms: ' + [...new Set(samples.map(z => z[0].toFixed(2)))].join(', '));
+  assert.equal(new Set(samples.map(z => z[1])).size, 1, 'the globe never changed height');
+  assert.equal(new Set(samples.map(z => z[2])).size, 1, 'and never turned (reduced motion also stops the idle turn)');
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && near(s.camera.lng, LON) && s.camera.zoom === 18);
+  assert.ok(near(s.pin.lat, LAT) && near(s.camera.lng, LON));
+  await B.expectFrame(page, LAT, LON, 'reduced motion: ', {renderer: 'map'});
   assert.equal(await title(page), 'GPS coordinates found');
   assert.equal(await B.content(page, 'longitude'), '-82.33788889');
   assert.deepEqual(steps.map(x => x.state).filter((x, i, a) => a.indexOf(x) === i).includes('settled'), true);
@@ -198,11 +203,12 @@ scenario('with no preference at all the default is the full cinematic profile', 
   assert.equal(await page.inputValue('#motion'), 'full');
 });
 
-scenario('fast motion keeps every beat but compresses them to under three seconds', {motion: 'fast'}, async ({page}) => {
+scenario('fast motion keeps every beat, and the whole revolution, in about five seconds', {motion: 'fast'}, async ({page}) => {
   await B.analyze(page, 'sample-street.jpg');
   const {total, steps} = await beats(page);
   assert.deepEqual(steps.map(s => s.state), ['acquire', 'scan', 'reveal', 'resolve', 'fly', 'lock', 'settled']);
-  assert.ok(total > 2000 && total < 3500, 'fast sequence took ' + Math.round(total) + ' ms (plan 2830)');
+  assert.ok(total > 4300 && total < 6200, 'fast sequence took ' + Math.round(total) + ' ms (plan 5070)');
+  assert.ok((await B.snapshot(page)).sequence.plan.sweep >= 360, 'the fast sequence still turns the globe at least once');
 });
 
 /* ============================================================ network and policy =========================== */
@@ -246,16 +252,18 @@ scenario('the content-security-policy blocks network, remote assets, workers fro
   await fullFlow(page);
 });
 
-scenario('bundled street data missing: the exact point is shown on the world overview with an honest explanation', {motion: 'fast', init: [() => {
+scenario('bundled street data missing: the exact point is still framed at five miles, outlines only, with an honest explanation', {motion: 'fast', init: [() => {
   for (const name of ['TRACE_MAP_DATA', 'TRACE_MAP_META', 'TRACE_MAP_LABELS']) Object.defineProperty(window, name, {configurable: true, get() {return undefined;}, set() {}});
 }]}, async ({page}) => {
   await B.analyze(page, 'sample-street.jpg');
   const s = await B.snapshot(page);
   assert.equal(await title(page), 'GPS coordinates found');
   assert.ok(near(s.pin.lat, LAT) && near(s.pin.lng, LON), 'the pin is still exact');
-  assert.equal(s.camera.zoom, 5, 'it did not fly into a blank maximum zoom');
-  assert.equal(s.coverage, 'OFFLINE / OVERVIEW');
-  assert.match(await B.content(page, 'coverageNote'), /not bundled|no street/i);
+  await B.expectFrame(page, LAT, LON, 'no street data: ', {renderer: 'map'});   // the same frame as anywhere else, never a blank maximum zoom
+  assert.equal(s.coverage, 'OFFLINE / OUTLINES');
+  assert.match(await B.content(page, 'coverageNote'), /No offline roads or buildings are installed for this area/);
+  assert.match(await B.content(page, 'coverageNote'), /Add map data/);      // the way to get streets for this place (a map package), offered as a button
+  assert.ok(await page.isVisible('#coverageAdd'), 'the Add map data action is shown');
   assert.equal(await B.content(page, 'latitude'), '29.64885278');
 });
 
@@ -270,7 +278,8 @@ scenario('a hidden tab finishes the presentation and quietens the sound', {motio
   await B.waitDone(page, 4000);
   await page.waitForFunction(() => window.MetaTrace.snapshot().audio.voices === 0, null, {timeout: 800});
   const s = await B.snapshot(page);
-  assert.ok(near(s.pin.lat, LAT) && s.camera.zoom === 18, 'the result was completed, not lost');
+  assert.ok(near(s.pin.lat, LAT), 'the result was completed, not lost');
+  await B.expectFrame(page, LAT, LON, 'hidden tab: ', {renderer: 'map'});
 });
 
 /* ============================================================ layout ======================================== */
@@ -282,7 +291,7 @@ async function layoutProblems(page, label) {
     const overflow = document.documentElement.scrollWidth - innerWidth;
     if (overflow > 0) problems.push('page scrolls sideways by ' + overflow + ' px');
     // Always on screen: these must have a size. The rest only exist visually once there is a file or a result.
-    const always = ['analyze', 'skip', 'changeImage', 'replay', 'cleanView', 'clear', 'soundToggle', 'volume', 'motion', 'tagSearch', 'map', 'statusTitle'];
+    const always = ['analyze', 'skip', 'changeImage', 'replay', 'cleanView', 'clear', 'soundToggle', 'volume', 'motion', 'tagSearch', 'map', 'globeCanvas', 'viewToggle', 'zoomIn', 'zoomOut', 'statusTitle'];
     for (const id of ['chooseButton', 'fileName', 'copyCoordinates', 'exportReport', 'recenter', ...always]) {
       const e = document.getElementById(id);
       if (!e) {problems.push('#' + id + ' missing'); continue;}
@@ -298,6 +307,14 @@ async function layoutProblems(page, label) {
     if (map.height < 240 || map.width < 240) problems.push('map is only ' + Math.round(map.width) + 'x' + Math.round(map.height));
     const status = document.getElementById('statusTitle').getBoundingClientRect();
     if (status.right > innerWidth + 0.5) problems.push('outcome title cut off');
+    // The text and controls laid over the map must not sit on top of one another.
+    const overlays = [['the coverage note', '#coverageNote'], ['the coordinate readout', '#mapCoordinate'], ['the scale bar', '.leaflet-control-scale'], ['the map controls', '.map-controls'], ['the map title', '.map-heading > div'], ['the map status badge', '#coverageBadge'], ['the attribution', '.leaflet-control-attribution'], ['the globe readout', '#globeReadout']]
+      .map(([name, sel]) => {const e = document.querySelector(sel); const r = e && e.getClientRects().length ? e.getBoundingClientRect() : null; return r && r.width > 0 && r.height > 0 ? {name, r} : null;}).filter(Boolean);
+    for (let i = 0; i < overlays.length; i++) for (let j = i + 1; j < overlays.length; j++) {
+      const a = overlays[i].r, b = overlays[j].r;
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (w > 1 && h > 1) problems.push(overlays[i].name + ' and ' + overlays[j].name + ' overlap by ' + Math.round(w) + ' x ' + Math.round(h) + ' px');
+    }
     return problems.map(p => label + ': ' + p);
   }, label);
 }
@@ -314,6 +331,9 @@ for (const [width, height] of WIDTHS) {
     await B.sleep(300);
     await B.save(page, 'layout-' + width + '-2-located.png');
     assert.deepEqual(await layoutProblems(page, 'located'), []);
+    await B.expectFrame(page, LAT, LON, width + ' px wide: ', {renderer: 'map'});
+    const inside = await page.evaluate(() => {const f = document.getElementById('frame5').getBoundingClientRect(), m = document.getElementById('map').getBoundingClientRect(); return {w: f.width, h: f.height, ok: f.left >= m.left - 0.5 && f.right <= m.right + 0.5 && f.top >= m.top - 0.5 && f.bottom <= m.bottom + 0.5};});
+    assert.ok(inside.ok && Math.abs(inside.w - inside.h) < 0.5, 'the square frame sits inside the map (' + Math.round(inside.w) + ' x ' + Math.round(inside.h) + ' px)');
     // Even the longest real values fit: the SHA-256 and the full coordinates wrap rather than overflow.
     const wide = await page.evaluate(() => [...document.querySelectorAll('#coordinates *, #fileHash, #metadataBody td')].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX === 'visible' && e.getBoundingClientRect().right > innerWidth).map(e => e.id || e.className || e.tagName));
     assert.deepEqual(wide, [], 'values that run past the window edge');
@@ -321,7 +341,7 @@ for (const [width, height] of WIDTHS) {
     await B.save(page, 'layout-' + width + '-3-no-location.png');
     assert.deepEqual(await layoutProblems(page, 'no location'), []);
     const s = await B.snapshot(page);
-    assert.ok(s.camera.zoom < 3.5);
+    assert.deepEqual([s.view, s.globe.alt > 5e6], ['globe', true], 'nothing to plot: the globe is the view');
   });
 }
 

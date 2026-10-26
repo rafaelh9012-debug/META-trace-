@@ -21,6 +21,10 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9h10v10H9zM5 15V5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c-3 2.6-3 14.4 0 17M12 3.5c3 2.6 3 14.4 0 17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-streets" viewBox="0 0 24 24"><path d="M4 6.5l5-2 6 2 5-2v13l-5 2-6-2-5 2zM9 4.5v13M15 6.5v13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 4 3.5 8.5 12 13l8.5-4.5zM3.5 12.5 12 17l8.5-4.5M3.5 16 12 20.5l8.5-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5.5M12 7.8v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
@@ -114,18 +118,40 @@
     </section>
   </div>
 
-  <section class="map-panel" aria-label="Map">
-    <div id="map" role="img" aria-label="Offline map. The pin marks the GPS position embedded in the image."></div>
-    <div class="map-heading"><div><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE MAP</span></div>
-    <div id="mapNotice" class="map-notice"><svg id="mapNoticeSvg" aria-hidden="true"><use id="mapNoticeIcon" href="#i-info"/></svg><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
-    <div class="map-controls"><button id="zoomIn" type="button" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button><button id="zoomOut" type="button" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button><button id="recenter" type="button" aria-label="Recenter on the GPS position" disabled><svg aria-hidden="true"><use href="#i-locate"/></svg></button></div>
-    <div id="coverageNote" class="coverage-note">World outlines are included. Street detail is bundled for the Gainesville and University of Florida area.</div>
+  <section class="map-panel" data-view="globe" aria-label="Map">
+    <div id="map" role="img" aria-label="Offline street map. The pin marks the GPS position embedded in the image."></div>
+    <canvas id="globeCanvas" class="globe-canvas" tabindex="0" role="application" aria-label="Interactive 3D globe. Drag to turn it, scroll or pinch to zoom, arrow keys to move, Home to recenter."></canvas>
+    <div id="frame5" class="frame5" data-on="false" hidden aria-hidden="true"><i class="f5 tl"></i><i class="f5 tr"></i><i class="f5 bl"></i><i class="f5 br"></i><span class="f5-label f5-top num">5 mi · 8.05 km</span><span class="f5-label f5-left num">5 mi</span></div>
+    <div class="map-heading"><div><h2 id="mapTitle">Embedded GPS</h2><p id="mapSubtitle">Select an image to locate its GPS tags.</p></div><span id="coverageBadge" class="map-badge">OFFLINE GLOBE</span></div>
+    <div id="globeReadout" class="globe-readout num" aria-hidden="true"></div>
+    <div id="mapNotice" class="map-notice" hidden><svg id="mapNoticeSvg" aria-hidden="true"><use id="mapNoticeIcon" href="#i-info"/></svg><h3 id="mapNoticeTitle">No image selected</h3><p id="mapNoticeText">Only coordinates embedded in your image will be plotted.</p></div>
+    <div class="map-controls"><button id="mapSkip" type="button" aria-label="Skip animation" title="Skip animation" hidden><svg aria-hidden="true"><use href="#i-skip"/></svg></button><button id="zoomIn" type="button" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button><button id="zoomOut" type="button" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button><button id="recenter" type="button" aria-label="Recenter"><svg aria-hidden="true"><use href="#i-locate"/></svg></button><button id="viewToggle" type="button" aria-label="Switch to street map" title="Switch to street map"><svg aria-hidden="true"><use id="viewToggleIcon" href="#i-streets"/></svg></button><button id="mapData" type="button" aria-label="Map data" title="Map data" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-layers"/></svg></button></div>
+    <div class="map-foot">
+      <div id="coverageNote" class="coverage-note">Offline globe with coastlines, national borders and reference cities. Street detail is bundled for Gainesville and the University of Florida.</div>
     <div id="mapCoordinate" class="map-coordinate num" hidden></div>
+    </div>
   </section>
 </main>
+
+<dialog id="mapDataDialog" class="dialog" aria-labelledby="mapDataTitle" aria-describedby="mapDataIntro">
+  <div class="dialog-head"><h2 id="mapDataTitle">Map data</h2><button id="mapDataClose" class="icon-button dialog-close" type="button" aria-label="Close"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <p id="mapDataIntro" class="dialog-intro">Streets and buildings come from map packages stored on this computer. Nothing is downloaded or uploaded. A package adds detail only where it covers.</p>
+  <h3>Included with the app</h3>
+  <ul id="mapDataBundled" class="data-list"></ul>
+  <h3>Added by you</h3>
+  <ul id="mapDataList" class="data-list"></ul>
+  <p id="mapDataEmpty" class="empty">No packages added yet. A package is a .pmtiles file of vector map tiles; docs/MAP_DATA.md explains how to make one for any area.</p>
+  <div class="dialog-add">
+    <button id="mapDataPick" class="btn btn-primary" type="button">Add a .pmtiles file</button>
+    <input id="mapDataFile" type="file" accept=".pmtiles" hidden aria-label="Choose a .pmtiles map package">
+    <label class="check"><input id="mapDataKeep" type="checkbox"><span id="mapDataKeepText">Keep a copy in this browser</span></label>
+  </div>
+  <p id="mapDataStatus" class="dialog-status" role="status" aria-live="polite"></p>
+  <p id="mapDataStorage" class="dialog-foot"></p>
+</dialog>
 
 <div id="announce" class="sr-only" role="status" aria-live="polite"></div>
 <div id="announceAlert" class="sr-only" role="alert"></div>
 <div id="toast" class="toast" role="status"></div>
-<script>/*__LEAFLET_JS__*/</script><script>/*__EXIFR_JS__*/</script><script>/*__MAP_DATA__*/</script><script>/*__METADATA_CORE__*/</script><script>/*__METADATA_PARSER__*/</script><script>/*__WORKER_SOURCE__*/</script><script>/*__MAP_UTILS__*/</script><script>/*__TRACE_CANVAS_LAYER__*/</script><script>/*__MAP_DIRECTOR__*/</script><script>/*__PRESENTATION_CONTROLLER__*/</script><script>/*__AUDIO_ENGINE__*/</script><script>/*__SCAN_STAGE__*/</script><script>/*__METADATA_APP__*/</script>
+<script>/*__LEAFLET_JS__*/</script><script>/*__EXIFR_JS__*/</script><script>/*__MAP_DATA__*/</script><script>/*__METADATA_CORE__*/</script><script>/*__METADATA_PARSER__*/</script><script>/*__WORKER_SOURCE__*/</script><script>/*__MAP_UTILS__*/</script><script>/*__TRACE_CANVAS_LAYER__*/</script><script>/*__GLOBE_PACK__*/</script><script>/*__GLOBE_MATH__*/</script><script>/*__GLOBE_DATA__*/</script><script>/*__GLOBE_VIEW__*/</script><script>/*__MAP_DIRECTOR__*/</script><script>/*__GLOBE_DIRECTOR__*/</script><script>/*__PRESENTATION_CONTROLLER__*/</script><script>/*__AUDIO_ENGINE__*/</script><script>/*__PMTILES_READER__*/</script><script>/*__MVT_DECODER__*/</script><script>/*__TILE_SCHEMA__*/</script><script>/*__REGION_MANAGER__*/</script><script>/*__PACK_STORE__*/</script><script>/*__SCAN_STAGE__*/</script><script>/*__METADATA_APP__*/</script>
 </body></html>

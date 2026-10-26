@@ -1,8 +1,8 @@
 {
-  "application": "Crimson Image Metadata",
-  "version": "2.1.0-rc.1",
+  "application": "META trace",
+  "version": "2.2.0-rc.1",
   "dependency": "exifr 7.1.3",
   "parserSha256": "2bd05117781c12ddd965dee846de3b3f986b5ecb4c7f6a78f2d2ec1db7c65ae7",
-  "htmlSha256": "52fd328a5757e3e9d66c61b343858ab44c20ef4bff20cb3e7f9923079b7a1746",
-  "htmlBytes": 4227641
+  "htmlSha256": "d8432469880d6b60b8045fb5fceecc6d3f3ab796b8096770797edd9eb6916215",
+  "htmlBytes": 4723697
 }

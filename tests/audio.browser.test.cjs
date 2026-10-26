@@ -42,7 +42,7 @@ async function ready(t) {
 test.after(async () => {await closeBrowser();});
 
 // Latest time each cue may still be sounding, in seconds. Levels are checked in dBFS below.
-const ENDS_BY = {intake: 0.3, tick: 0.2, resolve: 0.8, lock: 1.0, neutral: 0.8, error: 0.6, confirm: 0.5, descend: 3.2};
+const ENDS_BY = {intake: 0.3, tick: 0.2, resolve: 0.8, lock: 1.0, neutral: 0.8, error: 0.6, confirm: 0.5, descend: 3.2, spin: 3.4, detail: 0.3};
 const dB = v => 20 * Math.log10(v);
 for (const [name, lastBy] of Object.entries(ENDS_BY)) {
   test('cue "' + name + '": finite, bounded, silent at the end, no DC offset', async t => {
@@ -77,8 +77,11 @@ test('cue "scan" runs until stopped, then fades out cleanly', async t => {
 test('identical renders are identical (the noise source is deterministic)', async t => {
   if (!await ready(t)) return;
   const [a, b] = await page.evaluate(async () => [await renderCue('intake'), await renderCue('intake')]);
-  assert.equal(a.checksum, b.checksum);
-  assert.equal(a.peak, b.peak);
+  // The seeded noise makes two renders the same to within what the browser's audio engine does with float32 arithmetic: a
+  // run once differed by 6e-10 in this checksum (about one float32 step in a sample near -142 dBFS). A random source would
+  // differ by whole units.
+  assert.ok(Math.abs(a.checksum - b.checksum) < 1e-6, 'checksums ' + a.checksum + ' and ' + b.checksum);
+  assert.ok(Math.abs(a.peak - b.peak) <= 1e-6 * a.peak, 'peaks ' + a.peak + ' and ' + b.peak);
 });
 
 test('stopAll fades every voice and leaves silence; none remain registered', async t => {
